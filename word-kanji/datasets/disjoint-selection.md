@@ -4,7 +4,7 @@
 
 使用 `select_one.py --one-per-answer`，从完整候选集中为每个答案选取四项组词计数字典序最大的题目；同分时默认取原始编号最小者。这只是题集筛选限制，不属于良好题目的标准。难度定义和复现命令见 [难度评定](../docs/difficulty.md)。
 
-新私有文件 `one-standard-hsk-hardest.sqlite` 包含 **587 道题、587 个不同答案字**，仍保留词语等级信息。原数据集均保留。公开网页已使用这一版本并按难度升序排列，不再需要同答案间隔。
+新私有文件 `one-standard-hsk-hardest.sqlite` 包含 **587 道题、587 个不同答案字**，仍保留词语等级信息。原数据集均保留。公开网页从中排除一道帮助教学题，实际使用 **586 关**，按难度升序排列，不再需要同答案间隔。
 
 概要见 [筛选统计](one-standard-hsk-hardest.summary.json)，全量候选最难题比较与唯一性复核见 [验证报告](one-standard-hsk-hardest.validation.json)。该模式的 `selection_stats.discarded_by_selection` 统计未保留的原题记录数，不再称作因词语重叠而排除。
 

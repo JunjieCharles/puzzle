@@ -21,6 +21,11 @@ PUBLIC = ROOT / "public"
 VERSION = "kanji-one-v1"
 
 
+def is_teaching_puzzle(row):
+    # The retired level is now a public tutorial, including equivalent swaps.
+    return {row["top"], row["left"]} == {"回", "报"} and {row["bottom"], row["right"]} == {"应", "案"}
+
+
 def difficulty(row):
     return row["difficulty"]
 
@@ -90,7 +95,7 @@ def export(source, output, gap=31):
     source = private_output(source)
     with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as db:
         db.row_factory = sqlite3.Row
-        rows = [dict(row) for row in db.execute("SELECT * FROM puzzle_details ORDER BY id")]
+        rows = [dict(row) for row in db.execute("SELECT * FROM puzzle_details ORDER BY id") if not is_teaching_puzzle(row)]
     if not rows:
         raise ValueError("Dataset is empty")
     counts = load_counts()

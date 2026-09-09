@@ -3,6 +3,14 @@ const plain = (value) => value && typeof value === "object" && !Array.isArray(va
 // Add future modes here; absence in an older code means no saved progress.
 const knownModes = ["campaign-one-standard"];
 
+export function migrateProgress(record, targetRevision) {
+  if (record?.revision === "cbe3a2f1ecd820a5" && targetRevision === "3a92ed63edc4ea56" &&
+      Number.isSafeInteger(record.completed) && record.completed >= 0 && record.completed <= 587) {
+    return { revision: targetRevision, completed: record.completed - (record.completed >= 197 ? 1 : 0) };
+  }
+  return record;
+}
+
 export function validateModes(modes) {
   if (!plain(modes) || Object.keys(modes).length > 32) throw new Error("存档格式无效");
   const result = {};

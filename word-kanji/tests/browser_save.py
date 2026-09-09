@@ -35,7 +35,13 @@ def main():
         second = page.locator("#save-code").input_value()
         assert second != code
         result = page.evaluate("""async code => {
-            const {decodeSave, validateModes} = await import('./save-code.js');
+            const {decodeSave, validateModes, migrateProgress} = await import('./save-code.js');
+            for (const [old, expected] of [[0,0],[196,196],[197,196],[198,197],[587,586]]) {
+                const migrated = migrateProgress({revision:'cbe3a2f1ecd820a5',completed:old}, '3a92ed63edc4ea56');
+                if (migrated.completed !== expected || migrated.revision !== '3a92ed63edc4ea56') throw Error('retired level migration');
+            }
+            const invalidOld = migrateProgress({revision:'cbe3a2f1ecd820a5',completed:588}, '3a92ed63edc4ea56');
+            if (invalidOld.revision !== 'cbe3a2f1ecd820a5') throw Error('invalid migration accepted');
             const value = await decodeSave(code);
             if (Object.keys(value).length !== 1 || value['campaign-one-standard'].completed !== 2) throw Error('roundtrip');
             if (Object.keys(validateModes({})).length) throw Error('missing modes');

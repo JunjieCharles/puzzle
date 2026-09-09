@@ -1,4 +1,4 @@
-import { encodeSave, decodeSave } from "./save-code.js";
+import { encodeSave, decodeSave, migrateProgress } from "./save-code.js";
 const $ = (id) => document.getElementById(id);
 const storageKey = "word-kanji:campaign:v1";
 const activeMode = "campaign-one-standard";
@@ -70,7 +70,7 @@ function drawLevels() {
 
 function readProgress() {
   try {
-    const value = JSON.parse(localStorage.getItem(storageKey));
+    const value = migrateProgress(JSON.parse(localStorage.getItem(storageKey)), campaign.revision);
     if (value?.revision === campaign.revision && Number.isInteger(value.completed)) {
       return Math.max(0, Math.min(campaign.puzzles.length, value.completed));
     }
@@ -283,7 +283,7 @@ $("save-export").addEventListener("click", () => saveAction(async () => {
 }));
 $("save-import").addEventListener("click", () => saveAction(async () => {
   const incoming = await decodeSave($("save-code").value);
-  const record = incoming[activeMode];
+  const record = migrateProgress(incoming[activeMode], campaign.revision);
   if (!record) throw new Error("存档中没有当前模式的进度");
   if (record.revision !== campaign.revision) throw new Error("存档题集与当前版本不同");
   if (record.completed > campaign.puzzles.length) throw new Error("进度超出当前关卡数量");
