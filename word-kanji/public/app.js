@@ -1,6 +1,42 @@
 const $ = (id) => document.getElementById(id);
 const storageKey = "word-kanji:campaign:v1";
 let campaign, loading, completed = 0, current = 0, generation = 0, busy = false, solved = false;
+let composing = false, levelPage = 0;
+const pageSize = 60;
+
+function drawLevels() {
+  const total = campaign.puzzles.length;
+  const pages = Math.ceil(total / pageSize);
+  levelPage = Math.max(0, Math.min(pages - 1, levelPage));
+  $("levels-count").textContent = `${completed} / ${total}`;
+  $("continue-level").href = completed === total ? "#complete" : `#play/${completed + 1}`;
+  $("continue-level").textContent = completed === total ? "全部通关 →" : "继续闯关 →";
+  const grid = document.createDocumentFragment();
+  for (let index = levelPage * pageSize; index < Math.min(total, (levelPage + 1) * pageSize); index++) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `level-tile${index < completed ? " passed" : ""}`;
+    button.textContent = String(index + 1);
+    button.disabled = index > completed;
+    button.setAttribute("aria-label", `第 ${index + 1} 关${index < completed ? "，已通关" : index > completed ? "，未解锁" : ""}`);
+    if (index === completed) button.setAttribute("aria-current", "step");
+    button.addEventListener("click", () => { location.hash = `play/${index + 1}`; });
+    grid.append(button);
+  }
+  $("level-grid").replaceChildren(grid);
+  $("page-select").replaceChildren(...Array.from({ length: pages }, (_, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `${index * pageSize + 1}–${Math.min(total, (index + 1) * pageSize)}`;
+    return option;
+  }));
+  $("page-select").value = String(levelPage);
+  $("page-previous").disabled = levelPage === 0;
+  $("page-next").disabled = levelPage === pages - 1;
+  $("level-pages").hidden = pages === 1;
+  $("levels-status").textContent = "";
+  $("levels-retry").hidden = true;
+}
 
 function readProgress() {
   try {
@@ -41,7 +77,7 @@ function feedback(text = "", state = "") {
 
 function clearEntry() {
   generation++;
-  busy = solved = false;
+  busy = solved = composing = false;
   $("entry").value = "";
   $("entry").readOnly = false;
   $("entry").classList.remove("solved");
@@ -64,12 +100,14 @@ function draw() {
   $("retry").hidden = true;
   $("previous").disabled = current === 0;
   $("resume").hidden = current >= Math.min(completed, campaign.puzzles.length - 1);
+  $("entry").focus({ preventScroll: true });
 }
 
 async function route() {
   clearEntry();
-  let name = location.hash.slice(1) || "home";
-  if (!["home", "types", "play", "complete"].includes(name)) name = "home";
+  const [requestedView, requestedLevel] = location.hash.slice(1).split("/");
+  let name = requestedView || "home";
+  if (!["home", "types", "levels", "play", "complete"].includes(name)) name = "home";
   for (const section of document.querySelectorAll(".view")) section.hidden = section.id !== name;
   $(name).querySelector("h1")?.focus({ preventScroll: true });
   if (name === "home") return;
@@ -78,9 +116,21 @@ async function route() {
     await loadCampaign();
     if (request !== generation) return;
     $("saved-progress").textContent = `${completed} / ${campaign.puzzles.length}`;
-    if (name === "play") {
-      if (completed === campaign.puzzles.length) { location.hash = "complete"; return; }
-      current = completed;
+    if (name === "levels") {
+      levelPage = Math.floor(Math.min(current, completed, campaign.puzzles.length - 1) / pageSize);
+      drawLevels();
+    } else if (name === "play") {
+      if (requestedLevel !== undefined) {
+        const selected = Number(requestedLevel) - 1;
+        if (!/^\d+$/.test(requestedLevel) || !Number.isInteger(selected) || selected < 0 || selected > completed || selected >= campaign.puzzles.length) {
+          location.hash = "levels";
+          return;
+        }
+        current = selected;
+      } else {
+        if (completed === campaign.puzzles.length) { location.hash = "complete"; return; }
+        current = completed;
+      }
       draw();
     } else if (name === "complete") {
       if (completed < campaign.puzzles.length) { location.hash = "play"; return; }
@@ -93,13 +143,16 @@ async function route() {
       $("submit").hidden = true;
       $("entry").disabled = true;
       $("retry").hidden = false;
+    } else if (name === "levels") {
+      $("levels-status").textContent = "加载失败";
+      $("levels-retry").hidden = false;
     }
   }
 }
 
 $("puzzle-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!campaign || busy || solved || $("entry").disabled) return;
+  if (!campaign || busy || solved || composing || $("entry").disabled) return;
   const value = $("entry").value.trim().normalize("NFC");
   if (!/^\p{Unified_Ideograph}$/u.test(value)) {
     feedback("请输入一个汉字", "error");
@@ -143,11 +196,18 @@ $("puzzle-form").addEventListener("submit", async (event) => {
   }
 });
 
-$("entry").addEventListener("input", () => {
+function limitEntry() {
+  // Count Unicode code points, preserving supplementary-plane Hanzi intact.
+  $("entry").value = Array.from($("entry").value.trim().normalize("NFC"))[0] || "";
+}
+$("entry").addEventListener("compositionstart", () => { composing = true; });
+$("entry").addEventListener("compositionend", () => { composing = false; limitEntry(); });
+$("entry").addEventListener("input", (event) => {
   // Invalidate a pending digest if the user changes input before it returns.
   if (busy) { generation++; busy = false; $("submit").disabled = false; }
   feedback();
   $("entry").removeAttribute("aria-invalid");
+  if (!composing && !event.isComposing) limitEntry();
 });
 $("entry").addEventListener("keydown", (event) => {
   if (event.key === "Enter" && (event.isComposing || event.keyCode === 229)) event.preventDefault();
@@ -155,11 +215,15 @@ $("entry").addEventListener("keydown", (event) => {
 $("next").addEventListener("click", () => {
   if (!solved) return;
   if (current + 1 === campaign.puzzles.length) location.hash = "complete";
-  else { current++; draw(); $("entry").focus(); }
+  else location.hash = `play/${current + 2}`;
 });
-$("previous").addEventListener("click", () => { if (current > 0) { current--; draw(); } });
-$("resume").addEventListener("click", () => { current = Math.min(completed, campaign.puzzles.length - 1); draw(); });
+$("previous").addEventListener("click", () => { if (current > 0) location.hash = `play/${current}`; });
+$("resume").addEventListener("click", () => { location.hash = `play/${Math.min(completed + 1, campaign.puzzles.length)}`; });
 $("retry").addEventListener("click", route);
+$("levels-retry").addEventListener("click", route);
+$("page-previous").addEventListener("click", () => { levelPage--; drawLevels(); });
+$("page-next").addEventListener("click", () => { levelPage++; drawLevels(); });
+$("page-select").addEventListener("change", () => { levelPage = Number($("page-select").value); drawLevels(); });
 $("replay").addEventListener("click", () => { completed = 0; saveProgress(); location.hash = "play"; });
 window.addEventListener("hashchange", route);
 window.addEventListener("pagehide", clearEntry);

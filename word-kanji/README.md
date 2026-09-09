@@ -8,9 +8,10 @@
 
 ### 闯关网页
 
-在仓库根目录运行 `python scripts/serve.py`，访问 `http://localhost:8000/puzzle/word-kanji/`。
-静态部署仅发布根目录 `public/` 的内容，保持 `puzzle/word-kanji/` 目录结构；生产环境使用 HTTPS 以支持浏览器摘要校验。
-无需安装前端依赖或构建。支持模式与题型选择、一字标准型答题、逐关解锁、回看和本地进度；无尽模式与二字标准型暂未开放。
+在仓库根目录运行 `python word-kanji/scripts/serve.py`，访问 `http://localhost:8000/puzzle/word-kanji/`。
+前端文件集中在 `word-kanji/public/`；部署时将其中的文件复制到网站发布目录的 `puzzle/word-kanji/` 下，生产环境使用 HTTPS 以支持浏览器摘要校验。
+无需安装前端依赖或构建。支持模式与题型选择、分页选关、一字标准型答题、逐关解锁、回看和本地进度；无尽模式与二字标准型暂未开放。
+当前流程、输入交互和需求变更归档见 [页面设计需求](docs/game-design.md)。
 
 公开题集包含全部 1,407 道筛选题。重新导出：
 

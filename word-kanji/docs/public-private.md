@@ -33,7 +33,7 @@ python -X utf8 word-kanji/scripts/audit_public.py --history
 
 ## 静态闯关页面
 
-部署范围仅为仓库根目录 `public/`。`word-kanji/scripts/export_campaign.py` 从仓库外的筛选数据库生成 `public/puzzle/word-kanji/campaign.json`，采用严格字段白名单，并由审计脚本检查其嵌套结构。
+部署范围仅为 `word-kanji/public/` 内的文件，在网站上对应 `/puzzle/word-kanji/`。`word-kanji/scripts/export_campaign.py` 从仓库外的筛选数据库生成 `word-kanji/public/campaign.json`，采用严格字段白名单，并由审计脚本检查其嵌套结构。项目内的本地预览服务也只映射本项目的 `public/`，不将仓库作为资源根目录。
 
 每题仅发布随机 ID、四个题面字、四个线索词的等级、难度、随机盐和校验摘要。摘要输入为 UTF-8 编码的 `kanji-one-v1:<id>:<salt>:<NFC(trim(input))>`，算法为 SHA-256。不同题目独立加盐；内部题目 ID、答案分组、完整词语和答案字均不导出。
 

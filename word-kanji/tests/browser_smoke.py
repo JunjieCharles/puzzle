@@ -40,12 +40,25 @@ def main():
         page.locator('a[href="#types"]').first.click()
         assert page.locator("#types button:disabled").count() == 1
         page.locator("#start").click()
+        page.locator("#level-grid button").first.wait_for(state="visible")
+        assert page.locator("#level-grid button").count() == 60
+        assert page.locator("#level-grid button:disabled").count() == 59
+        page.locator("#page-select").select_option("23")
+        assert page.locator("#level-grid button").count() == 27
+        assert page.locator("#level-grid button").last.inner_text() == "1407"
+        page.set_viewport_size({"width": 375, "height": 812})
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.locator("#page-select").select_option("0")
+        if screenshots:
+            page.screenshot(path=str(screenshots / "levels.png"), full_page=True)
+        page.locator("#level-grid button").first.click()
         page.wait_for_function("document.querySelector('#entry').disabled === false")
         assert page.locator("#level-count").inner_text() == "1 / 1407"
         for side in ("top", "left", "bottom", "right"):
             assert len(page.locator(f"#{side}").inner_text()) == 1
         page.reload()
         page.wait_for_function("document.querySelector('#entry').disabled === false")
+        page.set_viewport_size({"width": 1280, "height": 900})
         if screenshots:
             page.screenshot(path=str(screenshots / "desktop.png"))
         page.set_viewport_size({"width": 375, "height": 812})
@@ -66,6 +79,23 @@ def main():
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(args.url + "/#play")
         page.wait_for_function("document.querySelector('#entry').disabled === false")
+        # Multi-character edits/pastes keep the first complete Unicode character.
+        page.locator("#entry").fill(toy(3, 4, 5))
+        assert page.locator("#entry").input_value() == toy(3)
+        page.locator("#entry").fill(chr(0x20000) + toy(4))
+        assert page.locator("#entry").input_value() == chr(0x20000)
+        page.locator("#entry").evaluate("""(entry, value) => {
+            entry.dispatchEvent(new CompositionEvent('compositionstart', {bubbles:true}));
+            entry.value = 'pinyin';
+            entry.dispatchEvent(new InputEvent('input', {bubbles:true, isComposing:true}));
+        }""", None)
+        assert page.locator("#entry").input_value() == "pinyin"
+        page.locator("#entry").evaluate("""(entry, value) => {
+            entry.value = value;
+            entry.dispatchEvent(new CompositionEvent('compositionend', {bubbles:true, data:value}));
+        }""", toy(3, 4))
+        assert page.locator("#entry").input_value() == toy(3)
+        page.locator("#entry").fill("")
         page.locator("#submit").click()
         page.wait_for_function("document.querySelector('#entry').getAttribute('aria-invalid') === 'true'")
         page.locator("#entry").fill(toy(9))
@@ -81,8 +111,18 @@ def main():
         page.reload()
         page.wait_for_function("document.querySelector('#level-count').textContent === '2 / 2'")
         page.locator("#previous").click()
+        page.wait_for_function("document.querySelector('#level-count').textContent === '1 / 2'")
         assert page.locator("#level-count").inner_text() == "1 / 2"
+        page.reload()
+        page.wait_for_function("document.querySelector('#entry').disabled === false")
+        assert page.locator("#level-count").inner_text() == "1 / 2"
+        page.locator('#play a[href="#levels"]').click()
+        page.locator("#level-grid button.passed").wait_for(state="visible")
+        assert page.locator("#level-grid button:not(:disabled)").count() == 2
+        page.locator("#level-grid button").first.click()
+        page.wait_for_function("document.querySelector('#play').hidden === false")
         page.locator("#resume").click()
+        page.wait_for_function("document.querySelector('#level-count').textContent === '2 / 2'")
         page.locator("#entry").fill(toy(1))
         page.locator("#entry").press("Enter")
         page.locator("#next").wait_for(state="visible")
@@ -118,7 +158,13 @@ def main():
         page.locator("#submit").click()
         page.locator("#next").wait_for(state="visible")
         page.locator("#next").click()
+        page.wait_for_function("document.querySelector('#level-count').textContent === '2 / 2'")
         assert page.locator("#level-count").inner_text() == "2 / 2"
+        assert page.locator("#entry").evaluate("entry => document.activeElement === entry")
+        page.keyboard.insert_text(toy(1))
+        assert page.locator("#entry").input_value() == toy(1)
+        page.keyboard.press("Enter")
+        page.locator("#next").wait_for(state="visible")
         context.close()
         browser.close()
         assert not errors, "Browser raised an uncaught error"

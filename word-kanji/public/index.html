@@ -32,12 +32,20 @@
       <a class="back" href="#home">← 返回</a>
       <div class="heading"><span class="eyebrow">闯关模式</span><h1 id="types-title" tabindex="-1">选择题型</h1></div>
       <div class="choices">
-        <a class="choice" id="start" href="#play"><span class="choice-icon type-icon" aria-hidden="true">一</span><span class="choice-label">一字标准型<small id="saved-progress"></small></span><span class="choice-arrow" aria-hidden="true">↗</span></a>
+        <a class="choice" id="start" href="#levels"><span class="choice-icon type-icon" aria-hidden="true">一</span><span class="choice-label">一字标准型<small id="saved-progress"></small></span><span class="choice-arrow" aria-hidden="true">↗</span></a>
         <button class="choice" disabled><span class="choice-icon type-icon" aria-hidden="true">二</span><span class="choice-label">二字标准型</span><span class="badge">未开放</span></button>
       </div>
     </section>
-    <section id="play" class="view" hidden aria-labelledby="level-title">
+    <section id="levels" class="view" hidden aria-labelledby="levels-title">
       <a class="back" href="#types">← 返回</a>
+      <div class="play-heading"><div><span class="eyebrow">一字标准型</span><h1 id="levels-title" tabindex="-1">选择关卡</h1></div><span id="levels-count" class="level-count"></span></div>
+      <a id="continue-level" class="back" href="#play">继续闯关 →</a>
+      <div id="level-grid" class="level-grid" role="group" aria-label="关卡"></div>
+      <nav id="level-pages" class="level-pages" aria-label="关卡分页" hidden><button id="page-previous" type="button">← 上一页</button><select id="page-select" aria-label="关卡范围"></select><button id="page-next" type="button">下一页 →</button></nav>
+      <p id="levels-status" role="status"></p><button id="levels-retry" class="primary" type="button" hidden>重试</button>
+    </section>
+    <section id="play" class="view" hidden aria-labelledby="level-title">
+      <a class="back" href="#levels">← 选关</a>
       <div class="play-heading"><div><span class="eyebrow">一字标准型</span><h1 id="level-title" tabindex="-1">加载中…</h1></div><span id="level-count" class="level-count"></span></div>
       <progress id="progress" value="0" max="1" aria-label="闯关进度"></progress>
       <form id="puzzle-form" autocomplete="off">
