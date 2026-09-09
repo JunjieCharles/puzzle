@@ -1,0 +1,12 @@
+{
+  "dataset": "one-standard-hsk-all.sqlite",
+  "sha256": "a584575046ec1a37ae71d18e040c253027cb3000b624792c2a617a6a4afc8b42",
+  "puzzle_count": 16286128,
+  "integrity_check": "ok",
+  "foreign_keys": "ok",
+  "stored_statistics": "matched",
+  "independent_full_scan_solver_samples": 722,
+  "sampling": "128 seeded random IDs + first row per answer and per max level + endpoints",
+  "sampled_distinctness_and_word_grades": "matched",
+  "elapsed_seconds": 15.835460600006627
+}

@@ -1,0 +1,9 @@
+__pycache__/
+data/raw/
+datasets/*.sqlite
+datasets/*.sqlite-*
+datasets/*.partial*
+examples/
+private/
+*.sqlite
+*.sqlite-*

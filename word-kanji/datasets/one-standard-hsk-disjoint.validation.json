@@ -1,0 +1,13 @@
+{
+  "file": "one-standard-hsk-disjoint.sqlite",
+  "sha256": "1e0e72f47fe7568c9359273fbf1374031f8c9d5855cbe017ef323e95f7e01797",
+  "source_sha256": "a584575046ec1a37ae71d18e040c253027cb3000b624792c2a617a6a4afc8b42",
+  "validated_selected_puzzles": 1407,
+  "original_solver_unique_for_all_selected": true,
+  "source_words_grades_and_rows_preserved": true,
+  "per_answer_clue_words_disjoint": true,
+  "canonical_source_candidates_checked_for_greedy_order": 4071532,
+  "high_level_first_and_tie_break_verified": true,
+  "no_unblocked_candidate_remains": true,
+  "elapsed_seconds": 24.21899370002211
+}
