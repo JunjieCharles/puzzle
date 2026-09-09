@@ -3,6 +3,20 @@ const storageKey = "word-kanji:campaign:v1";
 let campaign, loading, completed = 0, current = 0, generation = 0, busy = false, solved = false;
 let composing = false, levelPage = 0;
 let pageSize = 60;
+let advanceTimer, departureTimer;
+
+function scheduleAdvance() {
+  const request = generation;
+  const from = location.hash;
+  const target = current + 1 === campaign.puzzles.length ? "complete" : `play/${current + 2}`;
+  const active = () => request === generation && location.hash === from && solved;
+  departureTimer = setTimeout(() => {
+    if (active()) $("puzzle-form").classList.add("departing");
+  }, 900);
+  advanceTimer = setTimeout(() => {
+    if (active()) location.hash = target;
+  }, 1150);
+}
 
 function fitLevelGrid() {
   const grid = $("level-grid");
@@ -90,6 +104,9 @@ function feedback(text = "", state = "") {
 }
 
 function clearEntry() {
+  clearTimeout(advanceTimer);
+  clearTimeout(departureTimer);
+  $("puzzle-form").classList.remove("departing", "arriving");
   generation++;
   busy = solved = composing = false;
   $("entry").value = "";
@@ -113,6 +130,7 @@ function draw() {
   $("next").hidden = true;
   $("retry").hidden = true;
   $("previous").disabled = current === 0;
+  $("puzzle-form").classList.add("arriving");
   $("entry").focus({ preventScroll: true });
 }
 
@@ -201,8 +219,7 @@ $("puzzle-form").addEventListener("submit", async (event) => {
     $("progress").value = completed;
     $("submit").hidden = true;
     $("next").hidden = false;
-    $("next").textContent = current + 1 === campaign.puzzles.length ? "完成闯关 →" : "下一关 →";
-    $("next").focus();
+    scheduleAdvance();
   } catch {
     if (request === generation) feedback("验证失败，请重试", "error");
   } finally {
@@ -225,11 +242,6 @@ $("entry").addEventListener("input", (event) => {
 });
 $("entry").addEventListener("keydown", (event) => {
   if (event.key === "Enter" && (event.isComposing || event.keyCode === 229)) event.preventDefault();
-});
-$("next").addEventListener("click", () => {
-  if (!solved) return;
-  if (current + 1 === campaign.puzzles.length) location.hash = "complete";
-  else location.hash = `play/${current + 2}`;
 });
 $("previous").addEventListener("click", () => { if (current > 0) location.hash = `play/${current}`; });
 $("retry").addEventListener("click", route);

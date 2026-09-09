@@ -57,4 +57,13 @@ progress { width:100%; height:7px; border:0; background:#dce3d4; display:block; 
 .answer-actions .primary { font-size:clamp(18px,1.4vw,22px); min-height:52px; width:min(100%,380px); padding:12px 24px; }
 @media(max-width:600px) { .answer-actions { margin-top:12px; padding-bottom:4px; }.answer-actions .primary { min-height:48px; padding:10px 24px; } }
 @media(max-height:560px) and (min-width:601px) { .answer-actions { grid-column:2; grid-row:1/4; align-self:center; margin:0; padding:0; }.answer-actions .feedback { align-self:auto; }.answer-actions .primary { width:100%; } }
-@media(prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; animation:none!important; } }
+.advance-indicator { min-height:52px; width:min(100%,380px); display:flex; align-items:center; justify-content:center; }
+.advance-indicator span { display:block; width:120px; height:5px; background:#dce5d3; border-radius:5px; overflow:hidden; }
+.advance-indicator span::after { content:""; display:block; height:100%; background:var(--green); transform-origin:left; animation:advance-fill 1.15s linear both; }
+.board { transition:opacity .25s ease,transform .25s ease; }
+#puzzle-form.arriving .board { animation:board-arrive .2s ease-out; }
+#puzzle-form.departing .board { opacity:0; transform:translateY(-6px); }
+@keyframes advance-fill { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+@keyframes board-arrive { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+@media(max-width:600px) { .advance-indicator { min-height:48px; } }
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; animation:none!important; } #puzzle-form.departing .board { opacity:1; transform:none; } }

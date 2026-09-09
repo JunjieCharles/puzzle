@@ -94,6 +94,7 @@ def main():
         context = browser.new_context(viewport={"width": 375, "height": 812})
         context.route("**/campaign.json", lambda route: route.fulfill(json=data))
         page = context.new_page()
+        page.clock.install()
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(args.url + "/#play")
         page.wait_for_function("document.querySelector('#entry').disabled === false")
@@ -127,6 +128,14 @@ def main():
         assert page.locator("#entry").evaluate("entry => entry.readOnly")
         saved = page.evaluate("JSON.parse(localStorage.getItem('word-kanji:campaign:v1'))")
         assert saved == {"revision": data["revision"], "completed": 1}
+        assert page.locator("#level-count").inner_text() == "1 / 2"
+        # Navigating away during the success pause must cancel automatic advance.
+        page.locator('#play a[href="#levels"]').click()
+        page.locator("#levels").wait_for(state="visible")
+        page.clock.fast_forward(2000)
+        assert page.url.endswith("#levels")
+        assert page.locator("#entry").input_value() == ""
+        page.goto(args.url + "/#play")
         page.reload()
         page.wait_for_function("document.querySelector('#level-count').textContent === '2 / 2'")
         assert page.locator("#entry").input_value() == ""
@@ -147,7 +156,6 @@ def main():
         page.locator("#entry").fill(toy(1))
         page.locator("#entry").press("Enter")
         page.locator("#next").wait_for(state="visible")
-        page.locator("#next").click()
         page.locator("#complete").wait_for(state="visible")
         page.reload()
         page.locator("#complete-count").wait_for(state="visible")
@@ -161,7 +169,7 @@ def main():
         assert page.locator("#level-count").inner_text() == "1 / 2"
         context.close()
 
-        context = browser.new_context()
+        context = browser.new_context(reduced_motion="reduce")
         # Loading failures can be retried without reloading the page.
         attempts = [0]
         def delayed_data(route):
@@ -178,7 +186,6 @@ def main():
         page.locator("#entry").fill(toy(0))
         page.locator("#submit").click()
         page.locator("#next").wait_for(state="visible")
-        page.locator("#next").click()
         page.wait_for_function("document.querySelector('#level-count').textContent === '2 / 2'")
         assert page.locator("#level-count").inner_text() == "2 / 2"
         assert page.locator("#entry").input_value() == ""
