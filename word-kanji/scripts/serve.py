@@ -24,6 +24,21 @@ def public_path(url, root=ROOT):
 
 
 class PublicHandler(SimpleHTTPRequestHandler):
+    # Windows file associations may identify .js as text/plain. ES modules
+    # require a JavaScript MIME type, independently of the machine registry.
+    extensions_map = {
+        **SimpleHTTPRequestHandler.extensions_map,
+        ".js": "text/javascript",
+        ".mjs": "text/javascript",
+        ".css": "text/css",
+        ".svg": "image/svg+xml",
+        ".json": "application/json",
+    }
+
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
     def translate_path(self, path):
         return str(public_path(path))
 

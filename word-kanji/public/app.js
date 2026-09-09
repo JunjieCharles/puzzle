@@ -2,9 +2,25 @@ const $ = (id) => document.getElementById(id);
 const storageKey = "word-kanji:campaign:v1";
 let campaign, loading, completed = 0, current = 0, generation = 0, busy = false, solved = false;
 let composing = false, levelPage = 0;
-const pageSize = 60;
+let pageSize = 60;
+
+function fitLevelGrid() {
+  const grid = $("level-grid");
+  const bounds = grid.getBoundingClientRect();
+  const gap = parseFloat(getComputedStyle(grid).gap);
+  const small = window.innerWidth <= 600;
+  const columns = Math.max(4, Math.min(10, Math.floor((bounds.width + gap) / (small ? 62 : 100))));
+  const rows = Math.max(1, Math.min(8, Math.floor((bounds.height + gap) / ((small ? 52 : 66) + gap))));
+  const anchor = levelPage * pageSize;
+  pageSize = columns * rows;
+  levelPage = Math.floor(anchor / pageSize);
+  grid.style.setProperty("--columns", columns);
+  grid.style.gridTemplateRows = `repeat(${rows}, minmax(44px, 1fr))`;
+  grid.dataset.pageSize = String(pageSize);
+}
 
 function drawLevels() {
+  fitLevelGrid();
   const total = campaign.puzzles.length;
   const pages = Math.ceil(total / pageSize);
   levelPage = Math.max(0, Math.min(pages - 1, levelPage));
@@ -114,6 +130,7 @@ async function route() {
     if (request !== generation) return;
     $("saved-progress").textContent = `${completed} / ${campaign.puzzles.length}`;
     if (name === "levels") {
+      fitLevelGrid();
       levelPage = Math.floor(Math.min(current, completed, campaign.puzzles.length - 1) / pageSize);
       drawLevels();
     } else if (name === "play") {
@@ -174,7 +191,7 @@ $("puzzle-form").addEventListener("submit", async (event) => {
       return;
     }
     solved = true;
-    $("entry").value = "";
+    // Keep the player's current input visible; navigation clears it.
     $("entry").readOnly = true;
     $("entry").classList.add("solved");
     $("entry").removeAttribute("aria-invalid");
@@ -222,6 +239,11 @@ $("page-next").addEventListener("click", () => { levelPage++; drawLevels(); });
 $("page-select").addEventListener("change", () => { levelPage = Number($("page-select").value); drawLevels(); });
 $("replay").addEventListener("click", () => { completed = 0; saveProgress(); location.hash = "play"; });
 window.addEventListener("hashchange", route);
+let resizeFrame;
+window.addEventListener("resize", () => {
+  cancelAnimationFrame(resizeFrame);
+  resizeFrame = requestAnimationFrame(() => { if (campaign && !$("levels").hidden) drawLevels(); });
+});
 window.addEventListener("pagehide", clearEntry);
 window.addEventListener("pageshow", (event) => { if (event.persisted) route(); });
 route();

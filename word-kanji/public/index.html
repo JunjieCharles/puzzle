@@ -37,15 +37,19 @@
       </div>
     </section>
     <section id="levels" class="view" hidden aria-labelledby="levels-title">
+      <div class="view-top">
       <a class="back" href="#types">← 返回</a>
       <div class="play-heading"><div><span class="eyebrow">一字标准型</span><h1 id="levels-title" tabindex="-1">选择关卡</h1></div><span id="levels-count" class="level-count"></span></div>
+      </div>
       <div id="level-grid" class="level-grid" role="group" aria-label="关卡"></div>
       <nav id="level-pages" class="level-pages" aria-label="关卡分页" hidden><button id="page-previous" type="button">← 上一页</button><select id="page-select" aria-label="关卡范围"></select><button id="page-next" type="button">下一页 →</button></nav>
       <p id="levels-status" role="status"></p><button id="levels-retry" class="primary" type="button" hidden>重试</button>
     </section>
     <section id="play" class="view" hidden aria-labelledby="level-title">
+      <div class="view-top">
       <a class="back" href="#levels">← 选关</a>
       <div class="play-heading"><div><span class="eyebrow">一字标准型</span><h1 id="level-title" tabindex="-1">加载中…</h1></div><span id="level-count" class="level-count"></span></div>
+      </div>
       <progress id="progress" value="0" max="1" aria-label="闯关进度"></progress>
       <form id="puzzle-form" autocomplete="off">
         <div class="board" role="group" aria-label="一字标准型题目">
@@ -55,10 +59,12 @@
           <span class="arrow right-two" aria-label="向右">→</span><span id="right" class="clue right"></span>
           <span class="arrow down-two" aria-label="向下">↓</span><span id="bottom" class="clue bottom"></span>
         </div>
+        <div class="answer-actions">
         <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
         <button id="submit" class="primary" type="submit" disabled>提交</button>
         <button id="next" class="primary" type="button" hidden>下一关 →</button>
         <button id="retry" class="primary" type="button" hidden>重试</button>
+        </div>
       </form>
       <nav class="level-nav" aria-label="关卡导航"><button id="previous" type="button" disabled>← 上一关</button></nav>
     </section>

@@ -10,6 +10,13 @@ spec.loader.exec_module(serve)
 
 
 class PublicPathTests(unittest.TestCase):
+    def test_browser_assets_ignore_windows_file_associations(self):
+        from unittest.mock import patch
+        handler = object.__new__(serve.PublicHandler)
+        with patch("mimetypes.guess_type", return_value=("text/plain", None)):
+            self.assertEqual(handler.guess_type("app.js"), "text/javascript")
+            self.assertEqual(handler.guess_type("coin.svg"), "image/svg+xml")
+
     def test_only_public_subdirectories_are_mapped(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve() / "sample"

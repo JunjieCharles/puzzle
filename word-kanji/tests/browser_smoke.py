@@ -36,19 +36,36 @@ def main():
         page.locator("#home").wait_for(state="visible")
         assert page.url.split("#")[0].endswith("/word-kanji/")
         assert page.locator("#home button:disabled").count() == 1
+        # All normal views fit without clipping or document scrollbars, including
+        # small phones and landscape. Keep resizing the same page to exercise
+        # recalculation of the level grid, not just the initial layout.
+        for width, height in ((2560,1290), (1920,1080), (1280,900), (1280,720), (1024,600),
+                              (768,1024), (390,844), (375,667), (320,568), (844,390)):
+            page.set_viewport_size({"width": width, "height": height})
+            for view in ("home", "types", "levels", "play"):
+                page.goto(args.url + "/#" + view)
+                if view == "levels":
+                    page.locator("#level-grid button").first.wait_for(state="visible")
+                if view == "play":
+                    page.wait_for_function("!document.querySelector('#entry').disabled")
+                assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), (width, height, view, "horizontal overflow")
+                assert page.evaluate("document.documentElement.scrollHeight <= innerHeight + 1"), (width, height, view, "vertical overflow")
+        page.set_viewport_size({"width": 1280, "height": 900})
+        page.goto(args.url + "/#home")
         if screenshots:
             page.screenshot(path=str(screenshots / "home.png"))
         page.locator('a[href="#types"]').first.click()
         assert page.locator("#types button:disabled").count() == 1
         page.locator("#start").click()
         page.locator("#level-grid button").first.wait_for(state="visible")
-        assert page.locator("#level-grid button").count() == 60
-        assert page.locator("#level-grid button:disabled").count() == 59
-        page.locator("#page-select").select_option(str((total - 1) // 60))
-        assert page.locator("#level-grid button").count() == (total - 1) % 60 + 1
+        page_size = int(page.locator("#level-grid").get_attribute("data-page-size"))
+        assert page.locator("#level-grid button").count() == page_size
+        assert page.locator("#level-grid button:disabled").count() == page_size - 1
+        page.locator("#page-select").select_option(str((total - 1) // page_size))
+        assert page.locator("#level-grid button").count() == (total - 1) % page_size + 1
         assert page.locator("#level-grid button").last.inner_text() == str(total)
         page.set_viewport_size({"width": 375, "height": 812})
-        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.wait_for_function("document.documentElement.scrollWidth <= innerWidth")
         page.locator("#page-select").select_option("0")
         if screenshots:
             page.screenshot(path=str(screenshots / "levels.png"), full_page=True)
@@ -106,11 +123,13 @@ def main():
         page.locator("#entry").fill(toy(0))
         page.locator("#submit").click()
         page.locator("#next").wait_for(state="visible")
-        assert page.locator("#entry").input_value() == ""
+        assert page.locator("#entry").input_value() == toy(0)
+        assert page.locator("#entry").evaluate("entry => entry.readOnly")
         saved = page.evaluate("JSON.parse(localStorage.getItem('word-kanji:campaign:v1'))")
         assert saved == {"revision": data["revision"], "completed": 1}
         page.reload()
         page.wait_for_function("document.querySelector('#level-count').textContent === '2 / 2'")
+        assert page.locator("#entry").input_value() == ""
         page.locator("#previous").click()
         page.wait_for_function("document.querySelector('#level-count').textContent === '1 / 2'")
         assert page.locator("#level-count").inner_text() == "1 / 2"
@@ -162,6 +181,7 @@ def main():
         page.locator("#next").click()
         page.wait_for_function("document.querySelector('#level-count').textContent === '2 / 2'")
         assert page.locator("#level-count").inner_text() == "2 / 2"
+        assert page.locator("#entry").input_value() == ""
         assert page.locator("#entry").evaluate("entry => document.activeElement === entry")
         page.keyboard.insert_text(toy(1))
         assert page.locator("#entry").input_value() == toy(1)
