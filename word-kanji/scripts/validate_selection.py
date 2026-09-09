@@ -22,6 +22,10 @@ def validate(source, output):
     assert file_hash(source) == summary["source_sha256"]
     assert file_hash(output) == summary["sha256"]
     lexicon = Lexicon.load()
+    branching = summary.get("difficulty_model", "").startswith("broad-directional-word-count")
+    lexicographic = summary.get("difficulty_model") == "broad-directional-word-count-lexicographic-v2"
+    starts = Counter(word[0] for word in lexicon.broad_two)
+    ends = Counter(word[1] for word in lexicon.broad_two)
     assert summary["sources"] == lexicon.metadata
     selected_groups = defaultdict(list)
     with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as original, closing(
@@ -32,6 +36,13 @@ def validate(source, output):
         assert word_rows == original.execute("SELECT * FROM words ORDER BY id").fetchall()
         ranks = {r[0]: r[2] for r in word_rows}
         words = {r[0]: r[1] for r in word_rows}
+        base = max(max(starts[word[0]], ends[word[-1]]) for word in words.values()) + 1
+        def order_key(refs, source_id):
+            if branching:
+                top, left, bottom, right = (words[ref] for ref in refs)
+                values = sorted((starts[top[0]], starts[left[0]], ends[bottom[1]], ends[right[1]]))
+                return tuple(-value for value in values) + (source_id,) if lexicographic else (-sum(values), source_id)
+            return tuple(-r for r in sorted(ranks[r] for r in refs)) + (source_id,)
         levels = Counter()
         rows = selected.execute("""
             SELECT p.id,p.answer_id,p.top_word_id,p.left_word_id,p.bottom_word_id,p.right_word_id,
@@ -53,7 +64,13 @@ def validate(source, output):
             assert highest == max(ranks[answer_id], *(ranks[r] for r in refs))
             levels[highest] += 1
             assert choice == len(selected_groups[answer_id]) + 1
-            key = tuple(-r for r in sorted(ranks[r] for r in refs)) + (source_id,)
+            key = order_key(refs, source_id)
+            stored_priority = selected.execute("SELECT priority FROM selection_trace WHERE puzzle_id=?", (number,)).fetchone()[0]
+            if branching:
+                expected_priority = 0
+                for component in key[:-1]:
+                    expected_priority = expected_priority * base - component
+                assert stored_priority == expected_priority
             selected_groups[answer_id].append((key, refs))
             if number % 300 == 0:
                 print(f"Validated {number}/{len(rows)} selected puzzles with the original full-scan solver", flush=True)
@@ -81,8 +98,8 @@ def validate(source, output):
                 blockers = [used_at[r] for r in refs if r in used_at]
                 assert blockers, "An unused non-overlapping candidate remains"
                 blocker = min(blockers)
-                candidate_key = tuple(-r for r in sorted(ranks[r] for r in refs)) + (source_id,)
-                assert choices[blocker][0] <= candidate_key, "Greedy high-level/source-ID order violated"
+                candidate_key = order_key(refs, source_id)
+                assert choices[blocker][0] <= candidate_key, "Greedy priority/source-ID order violated"
                 per_answer += 1
             assert per_answer * 4 == count
             scanned += per_answer
@@ -91,7 +108,8 @@ def validate(source, output):
               "validated_selected_puzzles": len(rows), "original_solver_unique_for_all_selected": True,
               "source_words_grades_and_rows_preserved": True, "per_answer_clue_words_disjoint": True,
               "canonical_source_candidates_checked_for_greedy_order": scanned,
-              "high_level_first_and_tie_break_verified": True,
+              "selection_priority_and_tie_break_verified": True,
+              "difficulty_model": summary.get("difficulty_model", "legacy-hsk-maximin"),
               "no_unblocked_candidate_remains": True, "elapsed_seconds": time.perf_counter() - started}
     output.with_suffix(".validation.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n",
                                                     encoding="utf-8", newline="\n")
@@ -101,6 +119,6 @@ def validate(source, output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=PRIVATE_ROOT / "datasets" / "one-standard-hsk-all.sqlite")
-    parser.add_argument("--selected", type=Path, default=PRIVATE_ROOT / "datasets" / "one-standard-hsk-disjoint.sqlite")
+    parser.add_argument("--selected", type=Path, default=PRIVATE_ROOT / "datasets" / "one-standard-hsk-branching-lexicographic.sqlite")
     args = parser.parse_args()
     validate(args.source, args.selected)

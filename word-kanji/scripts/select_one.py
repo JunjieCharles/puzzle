@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT))
 from generator import LEVELS, level_rank
 from storage import PRIVATE_ROOT, private_output
 from scripts.enumerate_one import SCHEMA
+from difficulty import MODEL, load_counts, reference_scores, reference_score
 
 
 def file_hash(path):
@@ -35,16 +36,18 @@ def priority(refs, ranks):
     return score
 
 
-def select_rows(rows, ranks):
+def select_rows(rows, ranks, scores=None):
     """Rows: (source_id, top, left, bottom, right), ascending source_id.
 
-    Returns canonical count and greedy choices in descending level priority.
+    Returns canonical count and greedy choices in descending difficulty priority
+    when scores are supplied; otherwise retains the legacy HSK-level ordering.
     Compact integer arrays keep the largest answer's candidate pool bounded.
     Equal priority is broken by the original puzzle ID (lowest first).
     """
     buckets = defaultdict(lambda: array("Q"))
     previous = -1
     candidate_count = 0
+    base = max(max(scores[0].values(), default=0), max(scores[1].values(), default=0)) + 1 if scores is not None else None
     for row in rows:
         if len(row) != 5 or row[0] <= previous:
             raise ValueError("Selection rows must have five integers and increasing unique source IDs")
@@ -53,7 +56,7 @@ def select_rows(rows, ranks):
         refs = row[1:]
         if len(set(refs)) != 4:
             raise ValueError("A source puzzle repeats a clue word")
-        buckets[priority(refs, ranks)].extend(row)
+        buckets[priority(refs, ranks) if scores is None else reference_score(refs, scores, base)].extend(row)
     used = set()
     chosen = []
     for score in sorted(buckets, reverse=True):
@@ -67,7 +70,9 @@ def select_rows(rows, ranks):
     return candidate_count, chosen
 
 
-def select_database(source, output, maximum="7-9", progress=None):
+def select_database(source, output, maximum="7-9", progress=None, mode="branch-count"):
+    if mode not in {"branch-count", "hsk-level"}:
+        raise ValueError("Unknown selection mode")
     source, output = Path(source).resolve(), private_output(output)
     staging = output.with_name(output.name + ".partial")
     if source == output or output.exists() or staging.exists():
@@ -103,6 +108,7 @@ def select_database(source, output, maximum="7-9", progress=None):
         words = original.execute("SELECT * FROM words ORDER BY id").fetchall()
         selected.executemany("INSERT INTO words VALUES (?,?,?,?,?,?)", words)
         ranks = {r[0]: r[2] for r in words}
+        scores = reference_scores({r[0]: r[1] for r in words}, load_counts()) if mode == "branch-count" else None
         available = dict(original.execute("SELECT answer_id,count(*) FROM puzzles WHERE max_hsk_level<=? GROUP BY answer_id",
                                           (level_rank(maximum),)))
         source_answer_stats = original.execute("SELECT * FROM answer_stats ORDER BY answer_id").fetchall()
@@ -115,7 +121,7 @@ def select_database(source, output, maximum="7-9", progress=None):
                 FROM puzzles WHERE answer_id=? AND max_hsk_level<=?
                 AND top_word_id<left_word_id AND bottom_word_id<right_word_id ORDER BY id
             """, (answer_id, level_rank(maximum)))
-            canonical_count, chosen = select_rows(rows, ranks)
+            canonical_count, chosen = select_rows(rows, ranks, scores)
             if canonical_count * 4 != available.get(answer_id, 0):
                 raise AssertionError("Source does not have all four orientation variants")
             canonical_total += canonical_count
@@ -147,8 +153,10 @@ def select_database(source, output, maximum="7-9", progress=None):
         selected.execute("CREATE INDEX idx_puzzles_level_answer ON puzzles(max_hsk_level,answer_id)")
         summary = {
             "schema_version": 2, "puzzle_type": "one-character-standard", "max_level": maximum,
-            "selection_policy": "per-answer-disjoint-clue-words-high-level-first",
-            "priority": "Four clue-word HSK ranks sorted ascending, compared lexicographically descending; 7 means 7-9",
+            "selection_policy": "per-answer-disjoint-clue-words-" + ("high-difficulty-first" if scores is not None else "high-level-first"),
+            "difficulty_model": MODEL if scores is not None else "legacy-hsk-maximin",
+            "priority": ("Four top/left prefix counts and bottom/right suffix counts sorted ascending, compared lexicographically descending; all HSK + CC-CEDICT two-character words"
+                         if scores is not None else "Four clue-word HSK ranks sorted ascending, compared lexicographically descending; 7 means 7-9"),
             "tie_break": "ascending source puzzle ID; canonical top<left and bottom<right by word ID",
             "generator_constraint_only": True, "answer_word_excluded_from_overlap": True,
             "cross_answer_word_reuse_allowed": True, "maximum_cardinality_claimed": False,
@@ -189,10 +197,12 @@ def select_database(source, output, maximum="7-9", progress=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=PRIVATE_ROOT / "datasets" / "one-standard-hsk-all.sqlite")
-    parser.add_argument("--output", type=Path, default=PRIVATE_ROOT / "datasets" / "one-standard-hsk-disjoint.sqlite")
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--mode", choices=("branch-count", "hsk-level"), default="branch-count")
     parser.add_argument("--max-level", choices=LEVELS, default="7-9")
     args = parser.parse_args()
-    summary = select_database(args.source, args.output, args.max_level, lambda msg: print(msg, flush=True))
+    output = args.output or PRIVATE_ROOT / "datasets" / ("one-standard-hsk-branching-lexicographic.sqlite" if args.mode == "branch-count" else "one-standard-hsk-disjoint.sqlite")
+    summary = select_database(args.source, output, args.max_level, lambda msg: print(msg, flush=True), args.mode)
     print(json.dumps({k: v for k, v in summary.items() if k != "sources"}, ensure_ascii=False, indent=2))
 
 

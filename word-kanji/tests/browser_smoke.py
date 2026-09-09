@@ -22,6 +22,7 @@ def main():
     parser.add_argument("--url", default="http://localhost:8000/puzzle/word-kanji")
     parser.add_argument("--screenshots", type=Path)
     args = parser.parse_args()
+    total = len(json.loads((ROOT / "public" / "campaign.json").read_text(encoding="utf-8"))["puzzles"])
     screenshots = private_output(args.screenshots) if args.screenshots else None
     if screenshots:
         screenshots.mkdir(parents=True, exist_ok=True)
@@ -43,9 +44,9 @@ def main():
         page.locator("#level-grid button").first.wait_for(state="visible")
         assert page.locator("#level-grid button").count() == 60
         assert page.locator("#level-grid button:disabled").count() == 59
-        page.locator("#page-select").select_option("23")
-        assert page.locator("#level-grid button").count() == 27
-        assert page.locator("#level-grid button").last.inner_text() == "1407"
+        page.locator("#page-select").select_option(str((total - 1) // 60))
+        assert page.locator("#level-grid button").count() == (total - 1) % 60 + 1
+        assert page.locator("#level-grid button").last.inner_text() == str(total)
         page.set_viewport_size({"width": 375, "height": 812})
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         page.locator("#page-select").select_option("0")
@@ -53,7 +54,7 @@ def main():
             page.screenshot(path=str(screenshots / "levels.png"), full_page=True)
         page.locator("#level-grid button").first.click()
         page.wait_for_function("document.querySelector('#entry').disabled === false")
-        assert page.locator("#level-count").inner_text() == "1 / 1407"
+        assert page.locator("#level-count").inner_text() == f"1 / {total}"
         for side in ("top", "left", "bottom", "right"):
             assert len(page.locator(f"#{side}").inner_text()) == 1
         page.reload()

@@ -1,5 +1,15 @@
 # 同一答案的线索词不重复筛选
 
+## 当前：扩展词库计数字典序
+
+当前默认先保留难度较高的题目：四个方向组词计数从小到大排列，按字典序降序筛选，再过滤同答案复用的线索词。计数采用 HSK 全等级 + CC-CEDICT。定义、执行命令和结果见 [难度评定](../docs/difficulty.md)。
+
+新私有文件 `one-standard-hsk-branching-lexicographic.sqlite` 包含 **1,408 道题、587 个答案字**。原文件均保留。`selection_trace.priority` 现表示四项计数字典序编码；`sorted_clue_levels_json` 仍保存旧有的等级信息用于统计，不参与新难度排序。
+
+## 历史：HSK 等级优先版
+
+以下数量、表格和等级策略描述原 `one-standard-hsk-disjoint.sqlite`，不再是当前默认筛选规则。
+
 这是**生成器的可选题集筛选策略**，不属于“良好题目”的质量标准，也不改变标准型、变型或 n 字型的定义。
 
 当前适用于一字标准型。筛选输入为之前生成的完整 HSK 一字标准型数据库；保留原文件，结果另存为私有目录中的 `one-standard-hsk-disjoint.sqlite`。两个数据库均位于仓库外的 `<仓库名>-private/word-kanji/datasets`。逐词等级、词条来源、题面和答案继续保留，读取方式仍可使用 `puzzle_details` 视图。
@@ -45,16 +55,16 @@
 在仓库根目录执行：
 
 ```powershell
-python -X utf8 word-kanji/scripts/select_one.py
+python -X utf8 word-kanji/scripts/select_one.py --mode hsk-level
 ```
 
 也可使用枚举入口并显式指定仓库外的原始数据集，例如本地路径：
 
 ```powershell
-python -X utf8 word-kanji/scripts/enumerate_one.py --disjoint-words-from C:/Code/puzzle-private/word-kanji/datasets/one-standard-hsk-all.sqlite
+python -X utf8 word-kanji/scripts/select_one.py --mode hsk-level --source C:/Code/puzzle-private/word-kanji/datasets/one-standard-hsk-all.sqlite
 
 # 逐题复核，并对所有原始候选独立验证贪心选择顺序
-python -X utf8 word-kanji/scripts/validate_selection.py
+python -X utf8 word-kanji/scripts/validate_selection.py --selected C:/Code/puzzle-private/word-kanji/datasets/one-standard-hsk-disjoint.sqlite
 ```
 
 默认仍使用全部 HSK 等级（含 7–9）。可以加 `--max-level 6`，从原题集中只考虑最高等级不超过 6 的题目，然后执行相同的等级优先策略。已有目标文件不会被覆盖；再次运行请指定新输出路径。

@@ -1,0 +1,14 @@
+{
+  "file": "one-standard-hsk-branching-lexicographic.sqlite",
+  "sha256": "b729f03bd626516e70b343cf3f7b7df7e96422cda99f890ddc3ec0f85fa888f3",
+  "source_sha256": "a584575046ec1a37ae71d18e040c253027cb3000b624792c2a617a6a4afc8b42",
+  "validated_selected_puzzles": 1408,
+  "original_solver_unique_for_all_selected": true,
+  "source_words_grades_and_rows_preserved": true,
+  "per_answer_clue_words_disjoint": true,
+  "canonical_source_candidates_checked_for_greedy_order": 4071532,
+  "selection_priority_and_tie_break_verified": true,
+  "difficulty_model": "broad-directional-word-count-lexicographic-v2",
+  "no_unblocked_candidate_remains": true,
+  "elapsed_seconds": 34.55296790000284
+}

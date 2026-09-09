@@ -38,7 +38,13 @@ def inspect_campaign(value):
                          ("\u3400" <= item <= "\u9fff" or "\U00020000" <= item <= "\U000323af")) if key == "clues" else item in ("1", "2", "3", "4", "5", "6", "7-9")
                 if not valid:
                     errors.append(f"invalid campaign {key} value")
-        if type(record["difficulty"]) is not int or not 4 <= record["difficulty"] <= 28:
+        score = record["difficulty"]
+        # Historical public exports used a scalar; new exports use sorted counts.
+        valid_score = (type(score) is int and 4 <= score <= 4 * 0x110000) or (
+            isinstance(score, list) and len(score) == 4
+            and all(type(item) is int and 1 <= item <= 0x110000 for item in score)
+            and score == sorted(score))
+        if not valid_score:
             errors.append("invalid campaign difficulty")
     return errors
 

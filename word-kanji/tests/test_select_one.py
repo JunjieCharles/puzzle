@@ -37,7 +37,7 @@ class SelectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             source, target = Path(directory) / "all.sqlite", Path(directory) / "selected.sqlite"
             build_database(Lexicon(records, set()), source)
-            summary = select_database(source, target)
+            summary = select_database(source, target, mode="hsk-level")
             self.assertEqual(summary["puzzle_count"], 2)
             with closing(sqlite3.connect(target)) as db:
                 self.assertEqual(db.execute("SELECT u.edge_uses FROM word_usage u JOIN words w ON w.id=u.word_id WHERE w.word=?",
@@ -50,7 +50,7 @@ class SelectionTests(unittest.TestCase):
             source, target = Path(directory) / "all.sqlite", Path(directory) / "selected.sqlite"
             build_database(Lexicon(records, set()), source)
             before = file_hash(source)
-            summary = select_database(source, target)
+            summary = select_database(source, target, mode="hsk-level")
             self.assertEqual(summary["puzzle_count"], 1)
             self.assertEqual(summary["counts_by_max_hsk_level"], {"7-9": 1})
             self.assertEqual(summary["canonical_candidates"], 9)

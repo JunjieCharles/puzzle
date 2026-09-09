@@ -15,15 +15,14 @@ import unicodedata
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from storage import PRIVATE_ROOT, private_output
+from difficulty import MODEL, load_counts, clue_score
 
 PUBLIC = ROOT / "public"
 VERSION = "kanji-one-v1"
 
 
 def difficulty(row):
-    # Mean of the four compound-word ranks; 7 represents the combined 7–9 band.
-    levels = [int(row[f"{side}_level"].split("-")[0]) for side in ("top", "left", "bottom", "right")]
-    return (sum(levels), max(levels), int(row["answer_level"].split("-")[0]))
+    return row["difficulty"]
 
 
 def arrange(rows, gap=31):
@@ -81,7 +80,7 @@ def public_record(row):
         "id": public_id,
         "clues": {side: row[side] for side in ("top", "left", "bottom", "right")},
         "levels": {side: row[f"{side}_level"] for side in ("top", "left", "bottom", "right")},
-        "difficulty": difficulty(row)[0],
+        "difficulty": list(difficulty(row)),
         "salt": salt,
         "check": digest_value(public_id, salt, row["answer"]),
     }
@@ -94,6 +93,9 @@ def export(source, output, gap=31):
         rows = [dict(row) for row in db.execute("SELECT * FROM puzzle_details ORDER BY id")]
     if not rows:
         raise ValueError("Dataset is empty")
+    counts = load_counts()
+    for row in rows:
+        row["difficulty"] = clue_score(row, counts)
     ordered = arrange(rows, gap)
     records = [public_record(row) for row in ordered]
     # Identifies this exact order without exposing source IDs or solution groups.
@@ -113,14 +115,15 @@ def export(source, output, gap=31):
     quarter_means = []
     for start in range(0, len(ordered), 200):
         part = ordered[start:start + 200]
-        quarter_means.append(round(sum(difficulty(row)[0] / 4 for row in part) / len(part), 3))
+        quarter_means.append([round(sum(difficulty(row)[i] for row in part) / len(part), 3) for i in range(4)])
     return {"puzzles": len(records), "minimum_distance": min(distances, default=None),
-            "mean_clue_rank_per_200_levels": quarter_means}
+            "difficulty_model": MODEL, "difficulty_range": [min(r["difficulty"] for r in rows), max(r["difficulty"] for r in rows)],
+            "mean_difficulty_per_200_levels": quarter_means}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", type=Path, default=PRIVATE_ROOT / "datasets" / "one-standard-hsk-disjoint.sqlite")
+    parser.add_argument("--source", type=Path, default=PRIVATE_ROOT / "datasets" / "one-standard-hsk-branching-lexicographic.sqlite")
     parser.add_argument("--output", type=Path, default=PUBLIC / "campaign.json")
     parser.add_argument("--gap", type=int, default=31, help="Level-number distance; 31 leaves 30 intervening levels")
     args = parser.parse_args()

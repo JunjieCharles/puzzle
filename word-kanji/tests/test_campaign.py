@@ -12,7 +12,7 @@ from toy import toy
 
 
 def sample(index, group, rank):
-    row = {"id": index, "answer": toy(group), "answer_level": "1"}
+    row = {"id": index, "answer": toy(group), "answer_level": "1", "difficulty": (rank,) * 4}
     for offset, side in enumerate(("top", "left", "bottom", "right")):
         row[side] = toy(100 + offset)
         row[f"{side}_level"] = str(rank)

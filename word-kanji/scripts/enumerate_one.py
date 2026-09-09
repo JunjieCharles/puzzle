@@ -222,12 +222,12 @@ def main():
     parser.add_argument("--max-level", choices=LEVELS, default="7-9")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--disjoint-words-from", type=Path,
-                        help="Optional generator filter: select high-level-first, non-repeating clue words per answer from an existing full dataset")
+                        help="Optional generator filter: select high-difficulty-first, non-repeating clue words per answer from an existing full dataset")
     args = parser.parse_args()
     try:
         if args.disjoint_words_from:
             from scripts.select_one import select_database
-            output = args.output or PRIVATE_ROOT / "datasets" / "one-standard-hsk-disjoint.sqlite"
+            output = args.output or PRIVATE_ROOT / "datasets" / "one-standard-hsk-branching-lexicographic.sqlite"
             summary = select_database(args.disjoint_words_from, output, args.max_level, lambda msg: print(msg, flush=True))
         else:
             output = args.output or PRIVATE_ROOT / "datasets" / "one-standard-hsk-all.sqlite"
