@@ -123,7 +123,7 @@ def export(source, output, gap=31):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", type=Path, default=PRIVATE_ROOT / "datasets" / "one-standard-hsk-branching-lexicographic.sqlite")
+    parser.add_argument("--source", type=Path, default=PRIVATE_ROOT / "datasets" / "one-standard-hsk-hardest.sqlite")
     parser.add_argument("--output", type=Path, default=PUBLIC / "campaign.json")
     parser.add_argument("--gap", type=int, default=31, help="Level-number distance; 31 leaves 30 intervening levels")
     args = parser.parse_args()

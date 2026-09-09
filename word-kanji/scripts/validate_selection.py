@@ -83,6 +83,8 @@ def validate(source, output):
                                                   (level_rank(summary["max_level"]),)):
             choices = selected_groups[answer_id]
             assert choices
+            if summary.get("one_per_answer"):
+                assert len(choices) == 1
             used_at = {}
             for index, (key, refs) in enumerate(choices):
                 assert all(ref not in used_at for ref in refs), "Repeated clue word for an answer"
@@ -95,6 +97,10 @@ def validate(source, output):
             per_answer = 0
             for source_id, top, left, bottom, right in candidates:
                 refs = (top, left, bottom, right)
+                if summary.get("one_per_answer"):
+                    assert choices[0][0] <= order_key(refs, source_id), "A harder candidate or earlier equal candidate was discarded"
+                    per_answer += 1
+                    continue
                 blockers = [used_at[r] for r in refs if r in used_at]
                 assert blockers, "An unused non-overlapping candidate remains"
                 blocker = min(blockers)
@@ -110,7 +116,9 @@ def validate(source, output):
               "canonical_source_candidates_checked_for_greedy_order": scanned,
               "selection_priority_and_tie_break_verified": True,
               "difficulty_model": summary.get("difficulty_model", "legacy-hsk-maximin"),
-              "no_unblocked_candidate_remains": True, "elapsed_seconds": time.perf_counter() - started}
+              "hardest_only_per_answer_verified": bool(summary.get("one_per_answer")),
+              "no_unblocked_candidate_remains": None if summary.get("one_per_answer") else True,
+              "elapsed_seconds": time.perf_counter() - started}
     output.with_suffix(".validation.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n",
                                                     encoding="utf-8", newline="\n")
     print(json.dumps(report, ensure_ascii=False, indent=2))
@@ -119,6 +127,6 @@ def validate(source, output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=PRIVATE_ROOT / "datasets" / "one-standard-hsk-all.sqlite")
-    parser.add_argument("--selected", type=Path, default=PRIVATE_ROOT / "datasets" / "one-standard-hsk-branching-lexicographic.sqlite")
+    parser.add_argument("--selected", type=Path, default=PRIVATE_ROOT / "datasets" / "one-standard-hsk-hardest.sqlite")
     args = parser.parse_args()
     validate(args.source, args.selected)

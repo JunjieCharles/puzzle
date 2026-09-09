@@ -14,7 +14,7 @@
 无需安装前端依赖或构建。支持模式与题型选择、分页选关、一字标准型答题、逐关解锁、回看和本地进度；无尽模式与二字标准型暂未开放。
 当前流程、输入交互和需求变更归档见 [页面设计需求](docs/game-design.md)。
 
-公开题集包含全部 1,408 道筛选题。重新导出：
+公开题集包含 587 道筛选题，每个答案只保留最难的一题。重新导出：
 
 ```powershell
 python -X utf8 word-kanji/scripts/export_campaign.py
@@ -22,8 +22,7 @@ python -X utf8 word-kanji/scripts/export_campaign.py
 
 难度按扩展词库（HSK 全等级 + CC-CEDICT）中，四个题面字在对应词首／词尾位置能组成的二字词数量评定。
 四项计数从小到大排序后按字典序比较，先比较最小项，相同才比较下一项；越大越难，不求和，HSK 等级不参与难度排序。
-同答案的关卡编号差至少为 31，即中间至少隔 30 道题；为维持间隔允许局部难度回落。详细定义和新筛选结果见 [难度评定](docs/difficulty.md)。
-导出器无法满足间隔时直接报错，不会静默放宽。排序与答案分组只在导出时的内存中处理。
+关卡按难度从易到难排列，答案不重复，无需额外间隔。详细定义和新筛选结果见 [难度评定](docs/difficulty.md)。排序与答案分组只在导出时的内存中处理。
 
 公开文件仅包含独立随机 ID、四个题面字、线索词等级、难度值、随机盐及题目绑定的 SHA-256 摘要。
 浏览器只保存题集版本与已过关数，不保存输入或标准答案。重新导出会更新随机 ID 和题集版本，旧版本进度自动从头开始；无须更新题集时不要重复导出。
@@ -43,8 +42,8 @@ python -X utf8 word-kanji/generator.py --max-level 7-9
 # 全量枚举一字标准型，另存私有 SQLite
 python -X utf8 word-kanji/scripts/enumerate_one.py
 
-# 从私有全量题库中按新难度优先挑选同答案不复用线索词的题目
-python -X utf8 word-kanji/scripts/select_one.py
+# 从私有全量题库中为每个答案只保留最难的一题
+python -X utf8 word-kanji/scripts/select_one.py --one-per-answer
 ```
 
 默认私有目录可以用环境变量 `WORD_KANJI_PRIVATE_DIR` 更改。生成器拒绝把带答案的输出写入仓库；`--output` 也必须指向仓库外。
@@ -65,7 +64,7 @@ python -X utf8 word-kanji/scripts/select_one.py
 ## 当前数据规模
 
 - 全量一字型：16,286,128 条位置排列记录，按同题定义对应 4,071,532 道不同题目，覆盖 587 个答案字。
-- 当前难度优先筛选：1,408 道题，仍覆盖 587 个答案字。旧等级优先版 1,407 道题保留在原私有数据集中。
+- 当前每答案最难题筛选：587 道题，覆盖 587 个不同答案字。此前字典序去重版 1,408 道题及旧等级优先版 1,407 道题保留在原私有数据集中。
 
 以上只公开数量，数据库保存于仓库外。格式与查询说明见 [全量数据](datasets/README.md)和[筛选策略](datasets/disjoint-selection.md)。
 

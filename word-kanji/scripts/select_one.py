@@ -36,7 +36,7 @@ def priority(refs, ranks):
     return score
 
 
-def select_rows(rows, ranks, scores=None):
+def select_rows(rows, ranks, scores=None, limit=None):
     """Rows: (source_id, top, left, bottom, right), ascending source_id.
 
     Returns canonical count and greedy choices in descending difficulty priority
@@ -67,10 +67,12 @@ def select_rows(rows, ranks, scores=None):
             if used.isdisjoint(refs):
                 chosen.append((source_id, *refs, score))
                 used.update(refs)
+                if limit is not None and len(chosen) >= limit:
+                    return candidate_count, chosen
     return candidate_count, chosen
 
 
-def select_database(source, output, maximum="7-9", progress=None, mode="branch-count"):
+def select_database(source, output, maximum="7-9", progress=None, mode="branch-count", one_per_answer=False):
     if mode not in {"branch-count", "hsk-level"}:
         raise ValueError("Unknown selection mode")
     source, output = Path(source).resolve(), private_output(output)
@@ -89,13 +91,14 @@ def select_database(source, output, maximum="7-9", progress=None, mode="branch-c
     output.parent.mkdir(parents=True, exist_ok=True)
     with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as original, closing(sqlite3.connect(staging)) as selected:
         selected.executescript(SCHEMA)
-        selected.executescript("""
+        discard_field = "discarded_by_selection" if one_per_answer else "discarded_for_word_overlap"
+        selected.executescript(f"""
         CREATE TABLE selection_stats (
             answer_id INTEGER PRIMARY KEY REFERENCES words(id),
             eligible_source_puzzles INTEGER NOT NULL,
             canonical_candidates INTEGER NOT NULL,
             selected_puzzles INTEGER NOT NULL,
-            discarded_for_word_overlap INTEGER NOT NULL
+            {discard_field} INTEGER NOT NULL
         );
         CREATE TABLE selection_trace (
             puzzle_id INTEGER PRIMARY KEY REFERENCES puzzles(id),
@@ -121,7 +124,7 @@ def select_database(source, output, maximum="7-9", progress=None, mode="branch-c
                 FROM puzzles WHERE answer_id=? AND max_hsk_level<=?
                 AND top_word_id<left_word_id AND bottom_word_id<right_word_id ORDER BY id
             """, (answer_id, level_rank(maximum)))
-            canonical_count, chosen = select_rows(rows, ranks, scores)
+            canonical_count, chosen = select_rows(rows, ranks, scores, 1 if one_per_answer else None)
             if canonical_count * 4 != available.get(answer_id, 0):
                 raise AssertionError("Source does not have all four orientation variants")
             canonical_total += canonical_count
@@ -153,7 +156,8 @@ def select_database(source, output, maximum="7-9", progress=None, mode="branch-c
         selected.execute("CREATE INDEX idx_puzzles_level_answer ON puzzles(max_hsk_level,answer_id)")
         summary = {
             "schema_version": 2, "puzzle_type": "one-character-standard", "max_level": maximum,
-            "selection_policy": "per-answer-disjoint-clue-words-" + ("high-difficulty-first" if scores is not None else "high-level-first"),
+            "selection_policy": ("per-answer-hardest-only" if one_per_answer else "per-answer-disjoint-clue-words-" + ("high-difficulty-first" if scores is not None else "high-level-first")),
+            "one_per_answer": one_per_answer,
             "difficulty_model": MODEL if scores is not None else "legacy-hsk-maximin",
             "priority": ("Four top/left prefix counts and bottom/right suffix counts sorted ascending, compared lexicographically descending; all HSK + CC-CEDICT two-character words"
                          if scores is not None else "Four clue-word HSK ranks sorted ascending, compared lexicographically descending; 7 means 7-9"),
@@ -163,7 +167,7 @@ def select_database(source, output, maximum="7-9", progress=None, mode="branch-c
             "source_file": source.name, "source_sha256": source_hash,
             "source_puzzle_count": source_summary["puzzle_count"],
             "eligible_source_puzzles": sum(available.values()), "canonical_candidates": canonical_total,
-            "puzzle_count": total, "discarded_for_word_overlap": sum(available.values()) - total,
+            "puzzle_count": total, discard_field: sum(available.values()) - total,
             "answers_with_puzzles": sum(c > 0 for c in counts.values()),
             "puzzles_per_answer_histogram": dict(sorted(histogram.items())),
             "counts_by_max_hsk_level": {LEVELS[k - 1]: v for k, v in sorted(level_counts.items())},
@@ -200,9 +204,12 @@ def main():
     parser.add_argument("--output", type=Path)
     parser.add_argument("--mode", choices=("branch-count", "hsk-level"), default="branch-count")
     parser.add_argument("--max-level", choices=LEVELS, default="7-9")
+    parser.add_argument("--one-per-answer", action="store_true", help="Keep only the hardest candidate for each answer")
     args = parser.parse_args()
     output = args.output or PRIVATE_ROOT / "datasets" / ("one-standard-hsk-branching-lexicographic.sqlite" if args.mode == "branch-count" else "one-standard-hsk-disjoint.sqlite")
-    summary = select_database(args.source, output, args.max_level, lambda msg: print(msg, flush=True), args.mode)
+    if args.one_per_answer and args.output is None:
+        output = PRIVATE_ROOT / "datasets" / "one-standard-hsk-hardest.sqlite"
+    summary = select_database(args.source, output, args.max_level, lambda msg: print(msg, flush=True), args.mode, args.one_per_answer)
     print(json.dumps({k: v for k, v in summary.items() if k != "sources"}, ensure_ascii=False, indent=2))
 
 

@@ -28,22 +28,22 @@
 
 1. 从完整一字题库的 4,071,532 个规范题目代表重新开始，不在旧筛选结果上继续删选。
 2. 对每个答案，按难度序列降序选择；序列相同则优先原始题目编号较小的题目。
-3. 保留一题后，排除该答案下与其复用任一线索词的候选，继续选择。仍允许不同答案复用线索词；不声称贪心结果具有最大数量。
-4. 对筛选结果按难度序列升序编排关卡，并保持同答案关卡编号差至少为 31。间隔要求可能造成局部难度回落。
+3. 每个答案只保留最难的一题，其余候选全部排除。这是关卡筛选限制，不属于良好题目的标准；不同答案仍允许复用线索词。
+4. 对筛选结果按难度序列升序编排关卡。答案不再重复，无需同答案间隔，也不再因此出现局部难度回落。
 
-新筛选结果为 **1,408 道题、587 个答案字**。旧等级优先版和中间求和版均未覆盖，分别保留在仓库外的原私有文件中。网页已使用最终字典序版。
+当前筛选结果为 **587 道题、587 个答案字**。此前 1,408 题的字典序去重版、旧等级优先版和中间求和版均未覆盖，保留在仓库外。网页已使用每个答案仅保留最难一题的版本。
 
-结果概要见 [筛选统计](../datasets/one-standard-hsk-branching-lexicographic.summary.json)，完整候选顺序与逐题唯一性复核见 [验证报告](../datasets/one-standard-hsk-branching-lexicographic.validation.json)。
+结果概要见 [筛选统计](../datasets/one-standard-hsk-hardest.summary.json)，全部候选的最难题比较与逐题唯一性复核见 [验证报告](../datasets/one-standard-hsk-hardest.validation.json)。
 
 ## 数据与复现
 
 ```powershell
-python -X utf8 word-kanji/scripts/select_one.py
+python -X utf8 word-kanji/scripts/select_one.py --one-per-answer
 python -X utf8 word-kanji/scripts/validate_selection.py
 python -X utf8 word-kanji/scripts/export_campaign.py
 ```
 
-新私有文件为 `one-standard-hsk-branching-lexicographic.sqlite`。已有文件不覆盖，可通过 `--output` 另指定仓库外路径；导出时通过 `--source` 选择对应私有文件。
+新私有文件为 `one-standard-hsk-hardest.sqlite`。已有文件不覆盖，可通过 `--output` 另指定仓库外路径；验证时通过 `--selected`、导出时通过 `--source` 选择对应私有文件。不带 `--one-per-answer` 的筛选命令仍保留旧版同答案线索词不重复策略。
 
 公开 `campaign.json` 中的 `difficulty` 是四个升序整数的数组，不含答案或完整组词。旧公开版本的标量格式仅在历史审计中兼容。题目等级字段继续保留。私有 `selection_trace.priority` 以大于单项最大计数的基数编码四项序列，保持字典序；该编码不进入前端。
 

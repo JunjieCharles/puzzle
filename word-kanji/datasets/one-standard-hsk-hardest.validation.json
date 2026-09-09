@@ -1,0 +1,15 @@
+{
+  "file": "one-standard-hsk-hardest.sqlite",
+  "sha256": "b293964a9eb84274c6d3bb838c4f70ca451b4e1f1ad42af485d2681e2e2d65a1",
+  "source_sha256": "a584575046ec1a37ae71d18e040c253027cb3000b624792c2a617a6a4afc8b42",
+  "validated_selected_puzzles": 587,
+  "original_solver_unique_for_all_selected": true,
+  "source_words_grades_and_rows_preserved": true,
+  "per_answer_clue_words_disjoint": true,
+  "canonical_source_candidates_checked_for_greedy_order": 4071532,
+  "selection_priority_and_tie_break_verified": true,
+  "difficulty_model": "broad-directional-word-count-lexicographic-v2",
+  "hardest_only_per_answer_verified": true,
+  "no_unblocked_candidate_remains": null,
+  "elapsed_seconds": 22.395605600002455
+}

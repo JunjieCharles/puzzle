@@ -33,6 +33,13 @@ class DifficultyTests(unittest.TestCase):
         scores[1][8] = 6
         self.assertGreater(reference_score((5, 6, 7, 8), scores), reference_score((5, 6, 7, 7), scores))
 
+    def test_one_per_answer_discards_even_non_overlapping_easier_puzzles(self):
+        ranks = {ref: 1 for ref in range(1, 9)}
+        scores = ({ref: ref for ref in ranks}, {ref: ref for ref in ranks})
+        count, chosen = select_rows([(1, 1, 2, 3, 4), (2, 5, 6, 7, 8), (3, 5, 6, 7, 8)], ranks, scores, limit=1)
+        self.assertEqual(count, 3)
+        self.assertEqual([row[0] for row in chosen], [2])
+
 
 if __name__ == "__main__":
     unittest.main()

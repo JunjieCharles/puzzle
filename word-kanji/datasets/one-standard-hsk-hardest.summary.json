@@ -1,0 +1,115 @@
+{
+  "schema_version": 2,
+  "puzzle_type": "one-character-standard",
+  "max_level": "7-9",
+  "selection_policy": "per-answer-hardest-only",
+  "one_per_answer": true,
+  "difficulty_model": "broad-directional-word-count-lexicographic-v2",
+  "priority": "Four top/left prefix counts and bottom/right suffix counts sorted ascending, compared lexicographically descending; all HSK + CC-CEDICT two-character words",
+  "tie_break": "ascending source puzzle ID; canonical top<left and bottom<right by word ID",
+  "generator_constraint_only": true,
+  "answer_word_excluded_from_overlap": true,
+  "cross_answer_word_reuse_allowed": true,
+  "maximum_cardinality_claimed": false,
+  "source_file": "one-standard-hsk-all.sqlite",
+  "source_sha256": "a584575046ec1a37ae71d18e040c253027cb3000b624792c2a617a6a4afc8b42",
+  "source_puzzle_count": 16286128,
+  "eligible_source_puzzles": 16286128,
+  "canonical_candidates": 4071532,
+  "puzzle_count": 587,
+  "discarded_by_selection": 16285541,
+  "answers_with_puzzles": 587,
+  "puzzles_per_answer_histogram": {
+    "1": 587
+  },
+  "counts_by_max_hsk_level": {
+    "2": 1,
+    "4": 4,
+    "5": 20,
+    "6": 47,
+    "7-9": 515
+  },
+  "distinct_letters": true,
+  "positional_swaps_preserved": false,
+  "uniqueness_scope": "All HSK words plus CC-CEDICT snapshot; repeated-letter alternatives are included",
+  "sources": {
+    "standard": "HSK 3.0 (2025-11 / 2026-07)",
+    "official_syllabus": "https://www.chinesetest.cn/syllabus",
+    "hsk_repository": "https://github.com/krmanik/HSK-3.0",
+    "hsk_commit": "182692ce5a11bc30bdc771835d2f0f27491c25de",
+    "hsk_sources": {
+      "1": {
+        "url": "https://raw.githubusercontent.com/krmanik/HSK-3.0/182692ce5a11bc30bdc771835d2f0f27491c25de/New%20HSK%20%282025%29/HSK%20Words/temp/HSK_Level_1_words.txt",
+        "sha256": "02d551ce2024607d6bae3695581d74bd449574bb1759402a58e7de47817ff307",
+        "bytes": 7324
+      },
+      "2": {
+        "url": "https://raw.githubusercontent.com/krmanik/HSK-3.0/182692ce5a11bc30bdc771835d2f0f27491c25de/New%20HSK%20%282025%29/HSK%20Words/temp/HSK_Level_2_words.txt",
+        "sha256": "07ca5598cd394aedd2ba6819a67f0fe05ec25cc08e04d132a37ee0048fd3a5c0",
+        "bytes": 5468
+      },
+      "3": {
+        "url": "https://raw.githubusercontent.com/krmanik/HSK-3.0/182692ce5a11bc30bdc771835d2f0f27491c25de/New%20HSK%20%282025%29/HSK%20Words/temp/HSK_Level_3_words.txt",
+        "sha256": "975b6821199e57bc7d16a84f26a3d9a152da0123948776d35f93511060de2074",
+        "bytes": 13321
+      },
+      "4": {
+        "url": "https://raw.githubusercontent.com/krmanik/HSK-3.0/182692ce5a11bc30bdc771835d2f0f27491c25de/New%20HSK%20%282025%29/HSK%20Words/temp/HSK_Level_4_words.txt",
+        "sha256": "00b7322c16e31f30c1574c6c04d4cf03279e05319392a6516dcfa5f6e1495727",
+        "bytes": 28371
+      },
+      "5": {
+        "url": "https://raw.githubusercontent.com/krmanik/HSK-3.0/182692ce5a11bc30bdc771835d2f0f27491c25de/New%20HSK%20%282025%29/HSK%20Words/temp/HSK_Level_5_words.txt",
+        "sha256": "7b4df8e13696e985fde3843c0597eff061084d4e8f9bfd9601d8e244b017a9ca",
+        "bytes": 45469
+      },
+      "6": {
+        "url": "https://raw.githubusercontent.com/krmanik/HSK-3.0/182692ce5a11bc30bdc771835d2f0f27491c25de/New%20HSK%20%282025%29/HSK%20Words/temp/HSK_Level_6_words.txt",
+        "sha256": "b6c8045e236d6e50b4412386b95db18cedf53a5d416c26c72d0df5ddf9cfbb8f",
+        "bytes": 49906
+      },
+      "7-9": {
+        "url": "https://raw.githubusercontent.com/krmanik/HSK-3.0/182692ce5a11bc30bdc771835d2f0f27491c25de/New%20HSK%20%282025%29/HSK%20Words/temp/HSK_Level_7-9_words.txt",
+        "sha256": "a8b34acde41403adb10ce8bd7d7f00fe8559ebc5db14131a66911db64ab0edca",
+        "bytes": 171668
+      }
+    },
+    "hsk_license_source": {
+      "url": "https://raw.githubusercontent.com/krmanik/HSK-3.0/182692ce5a11bc30bdc771835d2f0f27491c25de/License.md",
+      "sha256": "a9aaff6f99acc720857d6a74f099c03d7c264da3e9ca825f9ffa750a1fe9e118",
+      "bytes": 1073
+    },
+    "hsk_source_rows": 11105,
+    "hsk_numbered_entries": 11000,
+    "hsk_headwords": 10902,
+    "hsk_earliest_level_counts": {
+      "1": 302,
+      "6": 1778,
+      "7-9": 5562,
+      "5": 1580,
+      "2": 198,
+      "3": 491,
+      "4": 991
+    },
+    "skipped_non_hanzi_entries": [],
+    "cedict_source": {
+      "url": "https://raw.githubusercontent.com/Punpuf/hsk-syllabus-vocabulary-parser/2adf7c9885a17077966922b89de7ce655d7d82a0/cedict_ts.u8",
+      "sha256": "d7490113879e8fd8aae012a6535eea43a0074f4396997ff2f273fc3e4ab2003d",
+      "bytes": 9695606
+    },
+    "cedict_mirror_commit": "2adf7c9885a17077966922b89de7ce655d7d82a0",
+    "cedict_snapshot_date": "2026-02-10T07:50:08Z",
+    "cedict_one_two_character_headwords": 71361,
+    "license": "CC-BY-SA-4.0",
+    "outputs": {
+      "hsk-2025.json": "adcac66db3256ec73bf8826444007b519b27987e1ded70bcd244cc4054d286dd",
+      "cedict-1-2.txt": "008a8cdce3b6070cb1fdbf84657efa94938d0d925aa4634dc8e08bddbabbedb5"
+    }
+  },
+  "license": "CC-BY-SA-4.0",
+  "file": "one-standard-hsk-hardest.sqlite",
+  "bytes": 1703936,
+  "sha256": "b293964a9eb84274c6d3bb838c4f70ca451b4e1f1ad42af485d2681e2e2d65a1",
+  "source_unchanged": true,
+  "elapsed_seconds": 15.144920599996112
+}

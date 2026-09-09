@@ -1,8 +1,16 @@
-# 同一答案的线索词不重复筛选
+# 一字标准型题集筛选
 
-## 当前：扩展词库计数字典序
+## 当前：每个答案只保留最难的一题
 
-当前默认先保留难度较高的题目：四个方向组词计数从小到大排列，按字典序降序筛选，再过滤同答案复用的线索词。计数采用 HSK 全等级 + CC-CEDICT。定义、执行命令和结果见 [难度评定](../docs/difficulty.md)。
+使用 `select_one.py --one-per-answer`，从完整候选集中为每个答案选取四项组词计数字典序最大的题目；同分时默认取原始编号最小者。这只是题集筛选限制，不属于良好题目的标准。难度定义和复现命令见 [难度评定](../docs/difficulty.md)。
+
+新私有文件 `one-standard-hsk-hardest.sqlite` 包含 **587 道题、587 个不同答案字**，仍保留词语等级信息。原数据集均保留。公开网页已使用这一版本并按难度升序排列，不再需要同答案间隔。
+
+概要见 [筛选统计](one-standard-hsk-hardest.summary.json)，全量候选最难题比较与唯一性复核见 [验证报告](one-standard-hsk-hardest.validation.json)。该模式的 `selection_stats.discarded_by_selection` 统计未保留的原题记录数，不再称作因词语重叠而排除。
+
+## 历史：扩展词库计数字典序与线索词去重
+
+此前先保留难度较高的题目：四个方向组词计数从小到大排列，按字典序降序筛选，再过滤同答案复用的线索词。计数采用 HSK 全等级 + CC-CEDICT。不带 `--one-per-answer` 时仍可使用这一旧策略。
 
 新私有文件 `one-standard-hsk-branching-lexicographic.sqlite` 包含 **1,408 道题、587 个答案字**。原文件均保留。`selection_trace.priority` 现表示四项计数字典序编码；`sorted_clue_levels_json` 仍保存旧有的等级信息用于统计，不参与新难度排序。
 
