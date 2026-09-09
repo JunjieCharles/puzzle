@@ -1,11 +1,46 @@
 """Reject known answer-bearing artifacts in public Git content; allow vocabulary and aggregates."""
 import argparse
 import json
+import re
 from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
 SENSITIVE_KEYS = {"answer", "answers", "edge_words", "broad_unique_answer", "source_puzzle_id", "top_candidate_contributors"}
+
+
+def inspect_campaign(value):
+    """Strict whitelist for browser-accessible campaign data, including nesting."""
+    errors = []
+    if not isinstance(value, dict) or set(value) != {"version", "revision", "puzzles"}:
+        return ["invalid campaign envelope"]
+    if value["version"] != "kanji-one-v1" or not re.fullmatch(r"[0-9a-f]{16}", str(value["revision"])):
+        errors.append("invalid campaign version/revision")
+    if not isinstance(value["puzzles"], list) or not value["puzzles"]:
+        return errors + ["empty or invalid campaign"]
+    ids = set()
+    for record in value["puzzles"]:
+        if not isinstance(record, dict) or set(record) != {"id", "clues", "levels", "difficulty", "salt", "check"}:
+            errors.append("unexpected campaign record fields")
+            continue
+        for key, length in (("id", 32), ("salt", 32), ("check", 64)):
+            if not isinstance(record[key], str) or not re.fullmatch(rf"[0-9a-f]{{{length}}}", record[key]):
+                errors.append(f"invalid campaign {key}")
+        if str(record["id"]) in ids:
+            errors.append("duplicate public ID")
+        ids.add(str(record["id"]))
+        for key in ("clues", "levels"):
+            if not isinstance(record[key], dict) or set(record[key]) != {"top", "left", "bottom", "right"}:
+                errors.append(f"invalid campaign {key}")
+                continue
+            for item in record[key].values():
+                valid = (isinstance(item, str) and len(item) == 1 and
+                         ("\u3400" <= item <= "\u9fff" or "\U00020000" <= item <= "\U000323af")) if key == "clues" else item in ("1", "2", "3", "4", "5", "6", "7-9")
+                if not valid:
+                    errors.append(f"invalid campaign {key} value")
+        if type(record["difficulty"]) is not int or not 4 <= record["difficulty"] <= 28:
+            errors.append("invalid campaign difficulty")
+    return errors
 
 
 def inspect_json(value, location="$"):
@@ -27,7 +62,11 @@ def inspect_file(name, payload):
             or "examples" in path.parts or "private" in path.parts or "raw" in path.parts):
         return [f"private artifact path: {name}"]
     if path.suffix == ".json":
-        return inspect_json(json.loads(payload.decode("utf-8-sig")))
+        value = json.loads(payload.decode("utf-8-sig"))
+        errors = inspect_json(value)
+        if path.name == "campaign.json":
+            errors.extend(inspect_campaign(value))
+        return errors
     return []
 
 
