@@ -24,7 +24,7 @@ function fitLevelGrid() {
   const gap = parseFloat(getComputedStyle(grid).gap);
   const small = window.innerWidth <= 600;
   const columns = Math.max(small ? 3 : 4, Math.min(small ? 5 : 10, Math.floor((bounds.width + gap) / (small ? 88 : 100))));
-  const rows = Math.max(1, Math.min(8, Math.floor((bounds.height + gap) / ((small ? 72 : 66) + gap))));
+  const rows = Math.max(1, Math.min(8, Math.floor((bounds.height + gap) / (72 + gap))));
   const anchor = levelPage * pageSize;
   pageSize = columns * rows;
   levelPage = Math.floor(anchor / pageSize);
