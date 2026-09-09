@@ -7,6 +7,31 @@ let composing = false, levelPage = 0;
 let pageSize = 60;
 let advanceTimer, departureTimer;
 
+function navigationPath() {
+  const currentRoute = location.hash.slice(1) || "home";
+  const path = history.state?.wordKanjiPath;
+  return Array.isArray(path) && path.at(-1) === currentRoute ? path : [currentRoute];
+}
+
+function navigate(target, { replace = false, back = false } = {}) {
+  const path = navigationPath();
+  if (back) {
+    const index = path.lastIndexOf(target);
+    if (index >= 0 && index < path.length - 1) {
+      clearEntry();
+      history.go(index - path.length + 1);
+      return;
+    }
+    // Direct links have no in-app parent history; the visible back button still works.
+    replace = true;
+  }
+  if (replace || path.at(-1) === target) path[path.length - 1] = target;
+  else path.push(target);
+  history[replace || location.hash === `#${target}` ? "replaceState" : "pushState"](
+    { wordKanjiPath: path }, "", `#${target}`);
+  return route();
+}
+
 function scheduleAdvance() {
   const request = generation;
   const from = location.hash;
@@ -16,7 +41,7 @@ function scheduleAdvance() {
     if (active()) $("puzzle-form").classList.add("departing");
   }, 700);
   advanceTimer = setTimeout(() => {
-    if (active()) location.hash = target;
+    if (active()) navigate(target, { replace: true });
   }, 900);
 }
 
@@ -50,7 +75,7 @@ function drawLevels() {
     button.disabled = index > completed;
     button.setAttribute("aria-label", `第 ${index + 1} 关${index < completed ? "，已通关" : index > completed ? "，未解锁" : ""}`);
     if (index === completed) button.setAttribute("aria-current", "step");
-    button.addEventListener("click", () => { location.hash = `play/${index + 1}`; });
+    button.addEventListener("click", () => navigate(`play/${index + 1}`));
     grid.append(button);
   }
   $("level-grid").replaceChildren(grid);
@@ -182,17 +207,17 @@ async function route() {
       if (requestedLevel !== undefined) {
         const selected = Number(requestedLevel) - 1;
         if (!/^\d+$/.test(requestedLevel) || !Number.isInteger(selected) || selected < 0 || selected > completed || selected >= campaign.puzzles.length) {
-          location.hash = "levels";
+          navigate("levels", { back: true });
           return;
         }
         current = selected;
       } else {
-        if (completed === campaign.puzzles.length) { location.hash = "complete"; return; }
+        if (completed === campaign.puzzles.length) { navigate("complete", { replace: true }); return; }
         current = completed;
       }
       draw();
     } else if (name === "complete") {
-      if (completed < campaign.puzzles.length) { location.hash = "play"; return; }
+      if (completed < campaign.puzzles.length) { navigate("play", { replace: true }); return; }
       $("complete-count").textContent = `${completed} / ${campaign.puzzles.length}`;
     }
   } catch {
@@ -271,13 +296,19 @@ $("entry").addEventListener("input", (event) => {
 $("entry").addEventListener("keydown", (event) => {
   if (event.key === "Enter" && (event.isComposing || event.keyCode === 229)) event.preventDefault();
 });
-$("previous").addEventListener("click", () => { if (current > 0) location.hash = `play/${current}`; });
+$("previous").addEventListener("click", () => { if (current > 0) navigate(`play/${current}`, { replace: true }); });
 $("retry").addEventListener("click", route);
 $("levels-retry").addEventListener("click", route);
 $("page-previous").addEventListener("click", () => { levelPage--; drawLevels(); });
 $("page-next").addEventListener("click", () => { levelPage++; drawLevels(); });
 $("page-select").addEventListener("change", () => { levelPage = Number($("page-select").value); drawLevels(); });
 window.addEventListener("hashchange", route);
+document.addEventListener("click", (event) => {
+  const link = event.target.closest('a[href^="#"]');
+  if (!link || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  navigate(link.hash.slice(1), { back: link.classList.contains("back") });
+});
 $("help-open").addEventListener("click", () => {
   $("help-dialog").showModal();
 });
@@ -316,8 +347,7 @@ $("save-import").addEventListener("click", () => saveAction(async () => {
   const persisted = await saveProgress();
   current = Math.min(completed, campaign.puzzles.length - 1);
   clearEntry();
-  location.hash = "levels";
-  await route();
+  await navigate("levels", { back: navigationPath().includes("levels") });
   $("save-status").textContent = !persisted ? "已导入本次游戏，但浏览器未能保存，请保留存档码" :
     "已导入，保留较高进度";
 }));
