@@ -6,6 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.export_campaign import VERSION, public_record
 from test_campaign import sample
+from toy import toy
 from playwright.sync_api import sync_playwright
 
 
@@ -59,11 +60,19 @@ def main():
         target.route("**/campaign.json", lambda route: route.fulfill(json=data))
         other = target.new_page()
         other.goto(url)
+        stale = target.new_page()
+        stale.goto(url + "#play/1")
+        stale.wait_for_function("!document.querySelector('#entry').disabled")
         other.locator("#save-open").click()
         other.locator("#save-code").fill(" \n" + code[:80] + "\n" + code[80:] + " ")
         other.locator("#save-import").click()
         other.wait_for_function("document.querySelector('#levels-count').textContent === '2 / 3'")
         saved = other.evaluate("localStorage.getItem('word-kanji:campaign:v1')")
+        stale.locator("#entry").fill(toy(0))
+        stale.locator("#submit").click()
+        stale.locator("#next").wait_for(state="visible")
+        assert stale.evaluate("localStorage.getItem('word-kanji:campaign:v1')") == saved
+        stale.close()
         assert other.locator("#save-dialog").is_visible()
         # Invalid or incompatible codes must leave the stored progress intact.
         invalid = [code[:-1] + ("0" if code[-1] != "0" else "1"), code.replace("HT101-1", "HT101-2")]

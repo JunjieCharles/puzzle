@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from scripts.export_campaign import arrange, difficulty, digest_value, public_record, VERSION
+from scripts.export_campaign import arrange, difficulty, digest_value, public_record, campaign_payload, VERSION
 from scripts.audit_public import inspect_campaign
 from toy import toy
 
@@ -20,6 +20,20 @@ def sample(index, group, rank):
 
 
 class CampaignTests(unittest.TestCase):
+    def test_repeat_export_preserves_ids_checks_and_revision(self):
+        rows = [sample(1, 0, 1)]
+        first = campaign_payload(rows)
+        self.assertEqual(campaign_payload(rows, first), first)
+        changed = copy.deepcopy(rows)
+        changed[0]["difficulty"] = (2, 2, 2, 2)
+        updated = campaign_payload(changed, first)
+        self.assertNotEqual(updated["revision"], first["revision"])
+        for key in ("id", "salt", "check"):
+            self.assertEqual(updated["puzzles"][0][key], first["puzzles"][0][key])
+        changed[0]["answer"] = toy(9)
+        replacement = campaign_payload(changed, first)
+        self.assertNotEqual(replacement["puzzles"][0]["id"], first["puzzles"][0]["id"])
+
     def test_spacing_preserves_every_puzzle_and_difficulty_trend(self):
         rows = [sample(group * 3 + repeat, group, repeat + 1) for group in range(40) for repeat in range(3)]
         ordered = arrange(rows, 31)

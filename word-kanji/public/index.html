@@ -70,8 +70,24 @@
       </form>
       <nav class="level-nav" aria-label="关卡导航"><button id="previous" type="button" disabled>← 上一关</button></nav>
     </section>
-    <section id="complete" class="view" hidden aria-labelledby="complete-title"><div class="heading"><span class="eyebrow">一字标准型</span><h1 id="complete-title" tabindex="-1">全部通关</h1><p id="complete-count" class="level-count"></p></div><a class="back" href="#types" aria-label="&#36820;&#22238;&#39064;&#22411;"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 5-7 7 7 7M5 12h14"/></svg></a><button id="replay" class="text-button" type="button">再玩一次</button></section>
+    <section id="complete" class="view" hidden aria-labelledby="complete-title">
+      <a class="back" href="#types" aria-label="&#36820;&#22238;&#39064;&#22411;"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 5-7 7 7 7M5 12h14"/></svg></a>
+      <div class="complete-panel">
+        <svg class="complete-medal" aria-hidden="true" viewBox="0 0 160 140" fill="none">
+          <circle cx="80" cy="65" r="44" fill="#e2edd8" stroke="#9eb898" stroke-width="2"/>
+          <circle cx="80" cy="65" r="34" fill="#285c49"/>
+          <path d="m64 65 11 11 22-24" stroke="#fffef7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M40 111C9 96 10 56 23 35M120 111c31-15 30-55 17-76" stroke="#789871" stroke-width="3" stroke-linecap="round"/>
+          <path d="M25 88Q4 85 7 66q17 1 18 22M21 62Q5 49 15 36q14 8 6 26M35 106Q14 111 11 94q17-7 24 12M135 88q21-3 18-22-17 1-18 22M139 62q16-13 6-26-14 8-6 26M125 106q21 5 24-12-17-7-24 12" fill="#a4bd97"/>
+          <path d="m80 3 3 7 7 3-7 3-3 7-3-7-7-3 7-3Z" fill="#789871"/>
+        </svg>
+        <span class="eyebrow">一字标准型</span>
+        <h1 id="complete-title" tabindex="-1">恭喜，全部通关！</h1>
+        <p id="complete-count" class="level-count"></p>
+      </div>
+    </section>
   </main>
+  <div id="save-warning" class="save-warning" role="status" hidden><span>进度尚未保存，请导出存档</span><button id="warning-export" type="button">导出存档</button></div>
   <dialog id="save-dialog" aria-labelledby="save-title">
     <form method="dialog" class="help-heading"><h2 id="save-title">存档</h2><button class="help-close" aria-label="关闭存档"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button></form>
     <label for="save-code">复制存档码，或粘贴后导入。</label>

@@ -79,8 +79,9 @@ def digest_value(public_id, salt, value):
     return hashlib.sha256(f"{VERSION}:{public_id}:{salt}:{normalized}".encode("utf-8")).hexdigest()
 
 
-def public_record(row):
-    public_id, salt = secrets.token_hex(16), secrets.token_hex(16)
+def public_record(row, previous=None):
+    reusable = previous is not None and previous["check"] == digest_value(previous["id"], previous["salt"], row["answer"])
+    public_id, salt = (previous["id"], previous["salt"]) if reusable else (secrets.token_hex(16), secrets.token_hex(16))
     return {
         "id": public_id,
         "clues": {side: row[side] for side in ("top", "left", "bottom", "right")},
@@ -89,6 +90,21 @@ def public_record(row):
         "salt": salt,
         "check": digest_value(public_id, salt, row["answer"]),
     }
+
+
+def campaign_payload(ordered, previous=None):
+    from scripts.audit_public import inspect_campaign
+    if previous is not None and inspect_campaign(previous):
+        raise ValueError("Existing public export is invalid; refusing to replace it")
+    def key(clues):
+        return tuple(sorted((clues["top"], clues["left"]))) + tuple(sorted((clues["bottom"], clues["right"])))
+    existing = {key(record["clues"]): record for record in previous["puzzles"]} if previous else {}
+    records = [public_record(row, existing.get(key(row))) for row in ordered]
+    revision = hashlib.sha256(json.dumps(records, ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:16]
+    payload = {"version": VERSION, "revision": revision, "puzzles": records}
+    if errors := inspect_campaign(payload):
+        raise ValueError("Invalid public export: " + "; ".join(errors))
+    return payload
 
 
 def export(source, output, gap=31):
@@ -102,14 +118,11 @@ def export(source, output, gap=31):
     for row in rows:
         row["difficulty"] = clue_score(row, counts)
     ordered = arrange(rows, gap)
-    records = [public_record(row) for row in ordered]
-    # Identifies this exact order without exposing source IDs or solution groups.
-    revision = hashlib.sha256(json.dumps(records, ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:16]
-    payload = {"version": VERSION, "revision": revision, "puzzles": records}
-    from scripts.audit_public import inspect_campaign
-    if errors := inspect_campaign(payload):
-        raise ValueError("Invalid public export: " + "; ".join(errors))
     output = Path(output)
+    baseline = output if output.exists() else PUBLIC / "campaign.json"
+    previous = json.loads(baseline.read_text(encoding="utf-8")) if baseline.exists() else None
+    payload = campaign_payload(ordered, previous)
+    records = payload["puzzles"]
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8", newline="\n")
     last, distances = {}, []

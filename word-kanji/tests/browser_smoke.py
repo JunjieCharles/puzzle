@@ -177,10 +177,11 @@ def main():
         page.reload()
         page.locator("#complete-count").wait_for(state="visible")
         assert page.locator("#complete-count").inner_text() == "2 / 2"
-        page.locator("#replay").click()
-        page.wait_for_function("document.querySelector('#level-count').textContent === '1 / 2'")
+        assert page.locator("#replay").count() == 0
+        assert page.evaluate("JSON.parse(localStorage.getItem('word-kanji:campaign:v1')).completed") == 2
         # Corrupt progress is ignored rather than crashing or unlocking a level.
         page.evaluate("localStorage.setItem('word-kanji:campaign:v1', '{')")
+        page.goto(args.url + "/#play/1")
         page.reload()
         page.wait_for_function("document.querySelector('#entry').disabled === false")
         assert page.locator("#level-count").inner_text() == "1 / 2"
@@ -204,6 +205,7 @@ def main():
         page.locator("#submit").click()
         page.locator("#next").wait_for(state="visible")
         page.wait_for_function("document.querySelector('#level-count').textContent === '2 / 2'")
+        assert page.locator("#save-warning").is_visible()
         assert page.locator("#level-count").inner_text() == "2 / 2"
         assert page.locator("#entry").input_value() == ""
         assert page.locator("#entry").evaluate("entry => document.activeElement === entry")

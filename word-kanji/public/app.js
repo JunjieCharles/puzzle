@@ -78,12 +78,34 @@ function readProgress() {
   return 0;
 }
 
-function saveProgress() {
+function refreshProgressUi() {
+  $("saved-progress").textContent = `${completed} / ${campaign.puzzles.length}`;
+  $("progress").value = completed;
+  if (!$("levels").hidden) drawLevels();
+}
+
+function syncProgress() {
+  if (!campaign) return;
+  completed = Math.max(completed, readProgress());
+  refreshProgressUi();
+}
+
+async function saveProgress() {
   // Store only a revision and the unlocked position, never player input.
   try {
-    localStorage.setItem(storageKey, JSON.stringify({ revision: campaign.revision, completed }));
+    const write = () => {
+      completed = Math.max(completed, readProgress());
+      localStorage.setItem(storageKey, JSON.stringify({ revision: campaign.revision, completed }));
+    };
+    if (navigator.locks) await navigator.locks.request(storageKey, write);
+    else write();
+    $("save-warning").hidden = true;
+    refreshProgressUi();
     return true;
-  } catch { return false; /* Still available for export during this session. */ }
+  } catch {
+    $("save-warning").hidden = false;
+    return false; /* Still available for export during this session. */
+  }
 }
 
 async function loadCampaign() {
@@ -148,6 +170,8 @@ async function route() {
   const request = generation;
   try {
     await loadCampaign();
+    if (request !== generation) return;
+    syncProgress();
     if (request !== generation) return;
     $("saved-progress").textContent = `${completed} / ${campaign.puzzles.length}`;
     if (name === "levels") {
@@ -218,7 +242,8 @@ $("puzzle-form").addEventListener("submit", async (event) => {
     $("entry").removeAttribute("aria-invalid");
     feedback("过关！", "success");
     completed = Math.max(completed, current + 1);
-    saveProgress();
+    await saveProgress();
+    if (request !== generation) return;
     $("progress").value = completed;
     $("submit").hidden = true;
     $("next").hidden = false;
@@ -252,7 +277,6 @@ $("levels-retry").addEventListener("click", route);
 $("page-previous").addEventListener("click", () => { levelPage--; drawLevels(); });
 $("page-next").addEventListener("click", () => { levelPage++; drawLevels(); });
 $("page-select").addEventListener("change", () => { levelPage = Number($("page-select").value); drawLevels(); });
-$("replay").addEventListener("click", () => { completed = 0; saveProgress(); location.hash = "play"; });
 window.addEventListener("hashchange", route);
 $("help-open").addEventListener("click", () => {
   $("help-dialog").showModal();
@@ -261,12 +285,13 @@ $("save-open").addEventListener("click", () => {
   $("save-status").textContent = "";
   $("save-dialog").showModal();
 });
+$("warning-export").addEventListener("click", () => $("save-open").click());
 let saveBusy = false;
 async function saveAction(action) {
   if (saveBusy) return;
   saveBusy = true;
   $("save-export").disabled = $("save-import").disabled = true;
-  try { await loadCampaign(); await action(); }
+  try { await loadCampaign(); syncProgress(); await action(); }
   catch (error) { $("save-status").textContent = error.message || "操作失败，请重试"; }
   finally { saveBusy = false; $("save-export").disabled = $("save-import").disabled = false; }
 }
@@ -288,7 +313,7 @@ $("save-import").addEventListener("click", () => saveAction(async () => {
   if (record.revision !== campaign.revision) throw new Error("存档题集与当前版本不同");
   if (record.completed > campaign.puzzles.length) throw new Error("进度超出当前关卡数量");
   completed = Math.max(completed, record.completed);
-  const persisted = saveProgress();
+  const persisted = await saveProgress();
   current = Math.min(completed, campaign.puzzles.length - 1);
   clearEntry();
   location.hash = "levels";
