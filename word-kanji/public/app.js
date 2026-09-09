@@ -1,5 +1,7 @@
+import { encodeSave, decodeSave } from "./save-code.js";
 const $ = (id) => document.getElementById(id);
 const storageKey = "word-kanji:campaign:v1";
+const activeMode = "campaign-one-standard";
 let campaign, loading, completed = 0, current = 0, generation = 0, busy = false, solved = false;
 let composing = false, levelPage = 0;
 let pageSize = 60;
@@ -80,7 +82,8 @@ function saveProgress() {
   // Store only a revision and the unlocked position, never player input.
   try {
     localStorage.setItem(storageKey, JSON.stringify({ revision: campaign.revision, completed }));
-  } catch { /* Progress is still maintained in memory for this session. */ }
+    return true;
+  } catch { return false; /* Still available for export during this session. */ }
 }
 
 async function loadCampaign() {
@@ -254,6 +257,45 @@ window.addEventListener("hashchange", route);
 $("help-open").addEventListener("click", () => {
   $("help-dialog").showModal();
 });
+$("save-open").addEventListener("click", () => {
+  $("save-status").textContent = "";
+  $("save-dialog").showModal();
+});
+let saveBusy = false;
+async function saveAction(action) {
+  if (saveBusy) return;
+  saveBusy = true;
+  $("save-export").disabled = $("save-import").disabled = true;
+  try { await loadCampaign(); await action(); }
+  catch (error) { $("save-status").textContent = error.message || "操作失败，请重试"; }
+  finally { saveBusy = false; $("save-export").disabled = $("save-import").disabled = false; }
+}
+$("save-export").addEventListener("click", () => saveAction(async () => {
+  const code = await encodeSave({ [activeMode]: { revision: campaign.revision, completed } });
+  $("save-code").value = code;
+  try {
+    await navigator.clipboard.writeText(code);
+    $("save-status").textContent = "存档码已复制";
+  } catch {
+    $("save-code").focus(); $("save-code").select();
+    $("save-status").textContent = "存档码已生成，请长按或手动复制";
+  }
+}));
+$("save-import").addEventListener("click", () => saveAction(async () => {
+  const incoming = await decodeSave($("save-code").value);
+  const record = incoming[activeMode];
+  if (!record) throw new Error("存档中没有当前模式的进度");
+  if (record.revision !== campaign.revision) throw new Error("存档题集与当前版本不同");
+  if (record.completed > campaign.puzzles.length) throw new Error("进度超出当前关卡数量");
+  completed = Math.max(completed, record.completed);
+  const persisted = saveProgress();
+  current = Math.min(completed, campaign.puzzles.length - 1);
+  clearEntry();
+  location.hash = "levels";
+  await route();
+  $("save-status").textContent = !persisted ? "已导入本次游戏，但浏览器未能保存，请保留存档码" :
+    "已导入，保留较高进度";
+}));
 let resizeFrame;
 window.addEventListener("resize", () => {
   cancelAnimationFrame(resizeFrame);

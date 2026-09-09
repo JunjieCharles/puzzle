@@ -135,7 +135,7 @@ def main():
         page.wait_for_function("document.querySelector('#level-count').textContent === '2 / 2'")
         assert page.locator("#help-dialog").is_visible()
         assert page.locator("#entry").input_value() == ""
-        page.locator(".help-close").click()
+        page.locator("#help-dialog .help-close").click()
         page.clock.fast_forward(2000)
         assert page.locator("#level-count").inner_text() == "2 / 2"
         page.locator("#previous").click()
