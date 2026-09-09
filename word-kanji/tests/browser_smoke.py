@@ -122,7 +122,8 @@ def main():
         assert page.locator("#level-grid button:not(:disabled)").count() == 2
         page.locator("#level-grid button").first.click()
         page.wait_for_function("document.querySelector('#play').hidden === false")
-        page.locator("#resume").click()
+        page.locator('#play a[href="#levels"]').click()
+        page.locator("#level-grid button").nth(1).click()
         page.wait_for_function("document.querySelector('#level-count').textContent === '2 / 2'")
         page.locator("#entry").fill(toy(1))
         page.locator("#entry").press("Enter")

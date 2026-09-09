@@ -9,8 +9,6 @@ function drawLevels() {
   const pages = Math.ceil(total / pageSize);
   levelPage = Math.max(0, Math.min(pages - 1, levelPage));
   $("levels-count").textContent = `${completed} / ${total}`;
-  $("continue-level").href = completed === total ? "#complete" : `#play/${completed + 1}`;
-  $("continue-level").textContent = completed === total ? "全部通关 →" : "继续闯关 →";
   const grid = document.createDocumentFragment();
   for (let index = levelPage * pageSize; index < Math.min(total, (levelPage + 1) * pageSize); index++) {
     const button = document.createElement("button");
@@ -99,7 +97,6 @@ function draw() {
   $("next").hidden = true;
   $("retry").hidden = true;
   $("previous").disabled = current === 0;
-  $("resume").hidden = current >= Math.min(completed, campaign.puzzles.length - 1);
   $("entry").focus({ preventScroll: true });
 }
 
@@ -218,7 +215,6 @@ $("next").addEventListener("click", () => {
   else location.hash = `play/${current + 2}`;
 });
 $("previous").addEventListener("click", () => { if (current > 0) location.hash = `play/${current}`; });
-$("resume").addEventListener("click", () => { location.hash = `play/${Math.min(completed + 1, campaign.puzzles.length)}`; });
 $("retry").addEventListener("click", route);
 $("levels-retry").addEventListener("click", route);
 $("page-previous").addEventListener("click", () => { levelPage--; drawLevels(); });
