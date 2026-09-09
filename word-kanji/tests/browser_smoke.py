@@ -36,6 +36,10 @@ def main():
         page.locator("#home").wait_for(state="visible")
         assert page.url.split("#")[0].endswith("/word-kanji/")
         assert page.locator("#home button:disabled").count() == 1
+        page.locator("#help-open").click()
+        assert page.locator("#help-dialog").is_visible()
+        page.keyboard.press("Escape")
+        assert page.locator("#help-dialog").is_hidden()
         # All normal views fit without clipping or document scrollbars, including
         # small phones and landscape. Keep resizing the same page to exercise
         # recalculation of the level grid, not just the initial layout.
@@ -126,6 +130,19 @@ def main():
         page.locator("#next").wait_for(state="visible")
         assert page.locator("#entry").input_value() == toy(0)
         assert page.locator("#entry").evaluate("entry => entry.readOnly")
+        page.locator("#help-open").click()
+        page.clock.fast_forward(2000)
+        page.wait_for_function("document.querySelector('#level-count').textContent === '2 / 2'")
+        assert page.locator("#help-dialog").is_visible()
+        assert page.locator("#entry").input_value() == ""
+        page.locator(".help-close").click()
+        page.clock.fast_forward(2000)
+        assert page.locator("#level-count").inner_text() == "2 / 2"
+        page.locator("#previous").click()
+        page.wait_for_function("document.querySelector('#level-count').textContent === '1 / 2'")
+        page.locator("#entry").fill(toy(0))
+        page.locator("#submit").click()
+        page.locator("#next").wait_for(state="visible")
         saved = page.evaluate("JSON.parse(localStorage.getItem('word-kanji:campaign:v1'))")
         assert saved == {"revision": data["revision"], "completed": 1}
         assert page.locator("#level-count").inner_text() == "1 / 2"

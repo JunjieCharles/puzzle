@@ -251,6 +251,9 @@ $("page-next").addEventListener("click", () => { levelPage++; drawLevels(); });
 $("page-select").addEventListener("change", () => { levelPage = Number($("page-select").value); drawLevels(); });
 $("replay").addEventListener("click", () => { completed = 0; saveProgress(); location.hash = "play"; });
 window.addEventListener("hashchange", route);
+$("help-open").addEventListener("click", () => {
+  $("help-dialog").showModal();
+});
 let resizeFrame;
 window.addEventListener("resize", () => {
   cancelAnimationFrame(resizeFrame);

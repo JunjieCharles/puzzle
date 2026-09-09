@@ -18,6 +18,7 @@
 </head>
 <body>
   <main class="shell">
+    <button id="help-open" class="help-button" type="button" aria-label="玩法帮助" aria-haspopup="dialog"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 8a4 4 0 0 1 8 0c0 3-4 3-4 6"/><circle cx="12" cy="18" r="1" fill="currentColor" stroke="none"/></svg></button>
     <section id="home" class="view" aria-labelledby="home-title">
       <header class="home-brand"><img class="brand-mark" src="./coin.svg" width="80" height="80" alt=""><span>中文和同101</span></header>
       <div class="heading"><h1 id="home-title" tabindex="-1">选择模式</h1></div>
@@ -68,5 +69,17 @@
     </section>
     <section id="complete" class="view" hidden aria-labelledby="complete-title"><div class="heading"><span class="eyebrow">一字标准型</span><h1 id="complete-title" tabindex="-1">全部通关</h1><p id="complete-count" class="level-count"></p></div><a class="back" href="#types" aria-label="&#36820;&#22238;&#39064;&#22411;"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 5-7 7 7 7M5 12h14"/></svg></a><button id="replay" class="text-button" type="button">再玩一次</button></section>
   </main>
+  <dialog id="help-dialog" aria-labelledby="help-title">
+    <form method="dialog" class="help-heading"><h2 id="help-title">怎么玩</h2><button class="help-close" aria-label="关闭帮助"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button></form>
+    <p>填一个字，顺着箭头组成四个词。</p>
+    <div class="help-example" role="img" aria-label="例题：上方炉、左方灯、下方花、右方苗，中间填火。箭头向右、向下。">
+      <span class="top">炉</span><span class="down-one help-arrow">↓</span>
+      <span class="left">灯</span><span class="right-one help-arrow">→</span>
+      <span class="help-answer">火</span><span class="right-two help-arrow">→</span><span class="right">苗</span>
+      <span class="down-two help-arrow">↓</span><span class="bottom">花</span>
+    </div>
+    <p class="help-words">炉火 · 灯火 · 火花 · 火苗</p>
+    <p>四个词都成立，就过关。</p>
+  </dialog>
 </body>
 </html>
