@@ -12,10 +12,10 @@ function scheduleAdvance() {
   const active = () => request === generation && location.hash === from && solved;
   departureTimer = setTimeout(() => {
     if (active()) $("puzzle-form").classList.add("departing");
-  }, 900);
+  }, 700);
   advanceTimer = setTimeout(() => {
     if (active()) location.hash = target;
-  }, 1150);
+  }, 900);
 }
 
 function fitLevelGrid() {

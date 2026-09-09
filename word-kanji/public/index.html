@@ -18,10 +18,8 @@
 </head>
 <body>
   <main class="shell">
-    <header class="site-header">
-      <a class="brand" href="#home" aria-label="中文和同101首页"><img class="brand-mark" src="./coin.svg" width="36" height="36" alt="">中文和同101</a>
-    </header>
     <section id="home" class="view" aria-labelledby="home-title">
+      <header class="home-brand"><img class="brand-mark" src="./coin.svg" width="80" height="80" alt=""><span>中文和同101</span></header>
       <div class="heading"><h1 id="home-title" tabindex="-1">选择模式</h1></div>
       <div class="choices">
         <a class="choice" href="#types"><span class="choice-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V3m0 1c5-4 9 4 14 0v10c-5 4-9-4-14 0"/></svg></span><span class="choice-label">闯关模式</span><svg class="choice-arrow" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></a>
@@ -29,7 +27,7 @@
       </div>
     </section>
     <section id="types" class="view" hidden aria-labelledby="types-title">
-      <a class="back" href="#home">← 返回</a>
+      <a class="back" href="#home" aria-label="&#36820;&#22238;&#39318;&#39029;"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 5-7 7 7 7M5 12h14"/></svg></a>
       <div class="heading"><span class="eyebrow">闯关模式</span><h1 id="types-title" tabindex="-1">选择题型</h1></div>
       <div class="choices">
         <a class="choice" id="start" href="#levels"><span class="choice-icon type-icon" aria-hidden="true">一</span><span class="choice-label">一字标准型<small id="saved-progress"></small></span><svg class="choice-arrow" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></a>
@@ -38,7 +36,7 @@
     </section>
     <section id="levels" class="view" hidden aria-labelledby="levels-title">
       <div class="view-top">
-      <a class="back" href="#types">← 返回</a>
+      <a class="back" href="#types" aria-label="&#36820;&#22238;&#39064;&#22411;"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 5-7 7 7 7M5 12h14"/></svg></a>
       <div class="play-heading"><div><span class="eyebrow">一字标准型</span><h1 id="levels-title" tabindex="-1">选择关卡</h1></div><span id="levels-count" class="level-count"></span></div>
       </div>
       <div id="level-grid" class="level-grid" role="group" aria-label="关卡"></div>
@@ -47,7 +45,7 @@
     </section>
     <section id="play" class="view" hidden aria-labelledby="level-title">
       <div class="view-top">
-      <a class="back" href="#levels">← 选关</a>
+      <a class="back" href="#levels" aria-label="&#36820;&#22238;&#36873;&#20851;"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 5-7 7 7 7M5 12h14"/></svg></a>
       <div class="play-heading"><div><span class="eyebrow">一字标准型</span><h1 id="level-title" tabindex="-1">加载中…</h1></div><span id="level-count" class="level-count"></span></div>
       </div>
       <progress id="progress" value="0" max="1" aria-label="闯关进度"></progress>
@@ -68,7 +66,7 @@
       </form>
       <nav class="level-nav" aria-label="关卡导航"><button id="previous" type="button" disabled>← 上一关</button></nav>
     </section>
-    <section id="complete" class="view" hidden aria-labelledby="complete-title"><div class="heading"><span class="eyebrow">一字标准型</span><h1 id="complete-title" tabindex="-1">全部通关</h1><p id="complete-count" class="level-count"></p></div><a class="primary" href="#types">返回题型</a><button id="replay" class="text-button" type="button">再玩一次</button></section>
+    <section id="complete" class="view" hidden aria-labelledby="complete-title"><div class="heading"><span class="eyebrow">一字标准型</span><h1 id="complete-title" tabindex="-1">全部通关</h1><p id="complete-count" class="level-count"></p></div><a class="back" href="#types" aria-label="&#36820;&#22238;&#39064;&#22411;"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 5-7 7 7 7M5 12h14"/></svg></a><button id="replay" class="text-button" type="button">再玩一次</button></section>
   </main>
 </body>
 </html>
