@@ -156,8 +156,13 @@ function feedback(text = "", state = "") {
 function clearEntry() {
   clearTimeout(advanceTimer);
   clearTimeout(departureTimer);
-  $("puzzle-form").classList.remove("departing", "arriving");
+  $("puzzle-form").classList.remove("departing", "arriving", "reviewing");
   generation++;
+  $("reveal").hidden = true;
+  $("hide-answer").hidden = true;
+  $("review-next").hidden = true;
+  $("reveal").disabled = false;
+  $("reveal").textContent = "查看答案";
   busy = solved = composing = false;
   $("entry").value = "";
   $("entry").readOnly = false;
@@ -180,6 +185,7 @@ function draw() {
   $("next").hidden = true;
   $("retry").hidden = true;
   $("previous").disabled = current === 0;
+  $("reveal").hidden = current >= completed;
   $("puzzle-form").classList.add("arriving");
   $("entry").focus({ preventScroll: true });
 }
@@ -297,6 +303,77 @@ $("entry").addEventListener("keydown", (event) => {
   if (event.key === "Enter" && (event.isComposing || event.keyCode === 229)) event.preventDefault();
 });
 $("previous").addEventListener("click", () => { if (current > 0) navigate(`play/${current}`, { replace: true }); });
+$("hide-answer").addEventListener("click", () => {
+  if ($("hide-answer").hidden) return;
+  clearEntry();
+  $("submit").hidden = false;
+  $("submit").disabled = false;
+  $("reveal").hidden = false;
+});
+$("review-next").addEventListener("click", () => {
+  if (!$("review-next").hidden && current + 1 < campaign.puzzles.length && current < completed) {
+    navigate(`play/${current + 2}`, { replace: true });
+  }
+});
+$("reveal").addEventListener("click", async () => {
+  if (!campaign || current >= completed || busy || solved) return;
+  const request = generation;
+  const puzzle = campaign.puzzles[current];
+  busy = true;
+  $("reveal").disabled = true;
+  $("reveal").textContent = "查看中…";
+  $("submit").disabled = true;
+  $("entry").readOnly = true;
+  const encoder = new TextEncoder();
+  const prefix = `${campaign.version}:${puzzle.id}:${puzzle.salt}:`;
+  // Search generic Unicode candidates only on demand; never store a solution table.
+  const ranges = [[0x4e00, 0x9fff], [0x3400, 0x4dbf], [0, 0x33ff], [0x4dc0, 0x4dff], [0xa000, 0x10ffff]];
+  try {
+    for (const [start, end] of ranges) {
+      for (let offset = start; offset <= end; offset += 256) {
+        if (request !== generation) return;
+        const candidates = [];
+        for (let code = offset; code <= Math.min(end, offset + 255); code++) {
+          const value = String.fromCodePoint(code);
+          if (/^\p{Unified_Ideograph}$/u.test(value)) candidates.push(value);
+        }
+        const matches = await Promise.all(candidates.map(async value => {
+          const digest = await crypto.subtle.digest("SHA-256", encoder.encode(prefix + value.normalize("NFC")));
+          const check = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+          return check === puzzle.check ? value : null;
+        }));
+        if (request !== generation) return;
+        const match = matches.find(Boolean);
+        if (match) {
+          $("puzzle-form").classList.add("reviewing");
+          $("entry").value = match;
+          $("entry").classList.add("solved");
+          $("entry").removeAttribute("aria-invalid");
+          solved = true;
+          $("submit").hidden = true;
+          $("reveal").hidden = true;
+          $("hide-answer").hidden = false;
+          $("review-next").hidden = false;
+          $("review-next").disabled = current + 1 >= campaign.puzzles.length;
+          feedback("答案已显示", "success");
+          return;
+        }
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+    }
+    throw new Error("No matching candidate");
+  } catch {
+    if (request === generation) feedback("查看失败，请重试", "error");
+  } finally {
+    if (request === generation) {
+      busy = false;
+      $("reveal").disabled = false;
+      $("reveal").textContent = "查看答案";
+      $("submit").disabled = false;
+      $("entry").readOnly = solved;
+    }
+  }
+});
 $("retry").addEventListener("click", route);
 $("levels-retry").addEventListener("click", route);
 $("page-previous").addEventListener("click", () => { levelPage--; drawLevels(); });
