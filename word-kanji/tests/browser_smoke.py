@@ -59,7 +59,7 @@ def main():
         if screenshots:
             page.screenshot(path=str(screenshots / "home.png"))
         page.locator('a[href="#types"]').first.click()
-        assert page.locator("#types button:disabled").count() == 1
+        assert page.locator("#types button:disabled").count() == 0
         page.locator("#start").click()
         page.locator("#level-grid button").first.wait_for(state="visible")
         page_size = int(page.locator("#level-grid").get_attribute("data-page-size"))

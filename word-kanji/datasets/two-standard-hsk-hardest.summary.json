@@ -1,0 +1,17 @@
+{
+  "model": "broad-directional-word-count-lexicographic-six-v1",
+  "order_model": "two-step-best-order-minimax-v1",
+  "selection_rule": "global-answer-characters-and-word-guess-dedup-v1",
+  "one_revision": "3a92ed63edc4ea56",
+  "one_clue_resources": 2344,
+  "external_clue_resources": 1866,
+  "feasible_answers": 3034,
+  "puzzles": 311,
+  "distinct_answer_characters": 622,
+  "revision": "d50323fe85aaf35b",
+  "sources": {
+    "hsk-2025.json": "adcac66db3256ec73bf8826444007b519b27987e1ded70bcd244cc4054d286dd",
+    "cedict-1-2.txt": "008a8cdce3b6070cb1fdbf84657efa94938d0d925aa4634dc8e08bddbabbedb5"
+  },
+  "full_solver_verified": 311
+}

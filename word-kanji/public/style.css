@@ -137,3 +137,22 @@ progress { width:100%; height:7px; border:0; background:#dce3d4; display:block; 
 @media(max-height:560px) and (min-width:601px) {
   .board { --size:clamp(140px,calc(100dvh - 248px),320px); }
 }
+.two-board {
+  --two-width:min(calc(100vw - 80px),calc(var(--size) * 1.4));
+  width:var(--two-width); height:calc(var(--two-width) * .7);
+  grid-template-columns:1fr .45fr 1fr .45fr 1fr .45fr 1fr;
+  grid-template-rows:1fr .45fr 1fr .45fr 1fr;
+}
+.two-board .clue { width:100%; height:100%; }
+.two-board .clue,.two-board .entry { font-size:clamp(22px,calc(var(--two-width) * .095),56px); }
+.two-board .entry { box-shadow:0 0 0 3px #e4ebdc; }
+.two-board .top-two { grid-area:1/5; }
+.two-board .down-three { grid-area:2/5; }
+.two-board .second-entry { grid-area:3/5; }
+.two-board .right-three { grid-area:3/6; }
+.two-board .right { grid-area:3/7; }
+.two-board .down-four { grid-area:4/5; }
+.two-board .bottom-two { grid-area:5/5; }
+@media(max-height:560px) and (min-width:601px) {
+  .two-board { --two-width:min(calc(45vw - 65px),calc(var(--size) * 1.4)); }
+}

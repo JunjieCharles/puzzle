@@ -1,5 +1,7 @@
 # 一字标准型难度评定
 
+本页的一字模型保持不变。二字筛选采用六项方向计数扩展，排序使用独立的两步最优顺序模型，详见[二字难度](two-difficulty.md)及[二字题库生成](two-standard-count.md)。
+
 当前模型：`broad-directional-word-count-lexicographic-v2`。
 
 ## 计数范围

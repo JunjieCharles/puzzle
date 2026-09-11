@@ -1,8 +1,24 @@
 import { encodeSave, decodeSave, migrateProgress } from "./save-code.js";
 const $ = (id) => document.getElementById(id);
-const storageKey = "word-kanji:campaign:v1";
-const activeMode = "campaign-one-standard";
-let campaign, loading, completed = 0, current = 0, generation = 0, busy = false, solved = false;
+const oneMode = "campaign-one-standard", twoMode = "campaign-two-standard";
+const modes = {
+  [oneMode]: { file: "campaign.json", version: "kanji-one-v1", key: "word-kanji:campaign:v1", label: "一字标准型", size: 1, completed: 0, current: 0 },
+  [twoMode]: { file: "campaign-two.json", version: "kanji-two-v1", key: "word-kanji:campaign-two:v1", label: "二字标准型", size: 2, completed: 0, current: 0 },
+};
+let activeMode = oneMode;
+let campaign, completed = 0, current = 0, generation = 0, busy = false, solved = false;
+const entries = () => modes[activeMode].size === 2 ? [$("entry"), $("entry-two")] : [$("entry")];
+function modeRoute(target, mode = activeMode) {
+  return mode === twoMode ? target.replace(/^(levels|play|complete)(?=\/|$)/, "$1-two") : target;
+}
+function activate(mode) {
+  modes[activeMode].completed = completed;
+  modes[activeMode].current = current;
+  activeMode = mode;
+  campaign = modes[mode].data;
+  completed = modes[mode].completed;
+  current = modes[mode].current;
+}
 let composing = false, levelPage = 0;
 let pageSize = 60;
 let advanceTimer, departureTimer;
@@ -13,7 +29,8 @@ function navigationPath() {
   return Array.isArray(path) && path.at(-1) === currentRoute ? path : [currentRoute];
 }
 
-function navigate(target, { replace = false, back = false } = {}) {
+function navigate(target, { replace = false, back = false, mode = activeMode } = {}) {
+  target = modeRoute(target, mode);
   const path = navigationPath();
   if (back) {
     const index = path.lastIndexOf(target);
@@ -93,59 +110,73 @@ function drawLevels() {
   $("levels-retry").hidden = true;
 }
 
-function readProgress() {
+function readProgress(mode = activeMode) {
+  const state = modes[mode];
+  if (!state.data) return 0;
   try {
-    const value = migrateProgress(JSON.parse(localStorage.getItem(storageKey)), campaign.revision);
-    if (value?.revision === campaign.revision && Number.isInteger(value.completed)) {
-      return Math.max(0, Math.min(campaign.puzzles.length, value.completed));
+    const raw = JSON.parse(localStorage.getItem(state.key));
+    const value = mode === oneMode ? migrateProgress(raw, state.data.revision) : raw;
+    if (value?.revision === state.data.revision && Number.isSafeInteger(value.completed)) {
+      return Math.max(0, Math.min(state.data.puzzles.length, value.completed));
     }
   } catch { /* Playing remains available when storage is disabled. */ }
   return 0;
 }
 
 function refreshProgressUi() {
-  $("saved-progress").textContent = `${completed} / ${campaign.puzzles.length}`;
+  for (const [mode, state] of Object.entries(modes)) {
+    if (state.data) $(mode === oneMode ? "saved-progress" : "saved-progress-two").textContent = `${state.completed} / ${state.data.puzzles.length}`;
+  }
   $("progress").value = completed;
-  if (!$("levels").hidden) drawLevels();
+  if (campaign && !$("levels").hidden) drawLevels();
 }
 
 function syncProgress() {
-  if (!campaign) return;
-  completed = Math.max(completed, readProgress());
+  for (const [mode, state] of Object.entries(modes)) {
+    state.completed = Math.max(state.completed, mode === activeMode ? completed : 0, readProgress(mode));
+  }
+  completed = modes[activeMode].completed;
   refreshProgressUi();
 }
 
-async function saveProgress() {
-  // Store only a revision and the unlocked position, never player input.
+async function saveProgress(mode = activeMode) {
+  const state = modes[mode];
+  state.completed = Math.max(state.completed, mode === activeMode ? completed : 0);
   try {
     const write = () => {
-      completed = Math.max(completed, readProgress());
-      localStorage.setItem(storageKey, JSON.stringify({ revision: campaign.revision, completed }));
+      state.completed = Math.max(state.completed, readProgress(mode));
+      localStorage.setItem(state.key, JSON.stringify({ revision: state.data.revision, completed: state.completed }));
     };
-    if (navigator.locks) await navigator.locks.request(storageKey, write);
+    if (navigator.locks) await navigator.locks.request(state.key, write);
     else write();
-    $("save-warning").hidden = true;
+    if (mode === activeMode) completed = Math.max(completed, state.completed);
+    state.unsaved = false;
+    $("save-warning").hidden = !Object.values(modes).some(s => s.unsaved);
     refreshProgressUi();
     return true;
   } catch {
+    state.unsaved = true;
     $("save-warning").hidden = false;
-    return false; /* Still available for export during this session. */
+    return false;
   }
 }
 
-async function loadCampaign() {
-  if (campaign) return;
-  if (!loading) {
-    loading = (async () => {
-      const response = await fetch(new URL("./campaign.json", import.meta.url));
-      if (!response.ok) throw new Error("load");
-      const data = await response.json();
-      if (data.version !== "kanji-one-v1" || !data.puzzles?.length) throw new Error("format");
-      campaign = data;
-      completed = readProgress();
-    })().finally(() => { loading = undefined; });
+async function loadCampaign(mode = activeMode) {
+  const state = modes[mode];
+  if (!state.data) {
+    if (!state.loading) {
+      state.loading = (async () => {
+        const response = await fetch(new URL(`./${state.file}`, import.meta.url));
+        if (!response.ok) throw new Error("加载失败，请重试");
+        const data = await response.json();
+        if (data.version !== state.version || !data.puzzles?.length) throw new Error("题集格式无效");
+        state.data = data;
+        state.completed = Math.max(state.completed, readProgress(mode));
+      })().finally(() => { state.loading = undefined; });
+    }
+    await state.loading;
   }
-  await loading;
+  if (mode === activeMode) { campaign = state.data; completed = Math.max(completed, state.completed); }
 }
 
 function feedback(text = "", state = "") {
@@ -164,17 +195,30 @@ function clearEntry() {
   $("reveal").disabled = false;
   $("reveal").textContent = "查看答案";
   busy = solved = composing = false;
-  $("entry").value = "";
-  $("entry").readOnly = false;
-  $("entry").classList.remove("solved");
-  $("entry").removeAttribute("aria-invalid");
+  for (const input of [$("entry"), $("entry-two")]) {
+    input.value = "";
+    input.readOnly = false;
+    input.classList.remove("solved");
+    input.removeAttribute("aria-invalid");
+  }
   feedback();
 }
 
 function draw() {
   clearEntry();
   const puzzle = campaign.puzzles[current];
-  for (const side of ["top", "left", "bottom", "right"]) $(side).textContent = puzzle.clues[side];
+  const two = activeMode === twoMode;
+  $("board").classList.toggle("two-board", two);
+  $("board").setAttribute("aria-label", `${modes[activeMode].label}题目`);
+  for (const element of document.querySelectorAll(".two-cell")) element.hidden = !two;
+  for (const side of ["top", "bottom"]) {
+    $(side).textContent = two ? puzzle.clues[side][0] : puzzle.clues[side];
+    $(`${side}-two`).textContent = two ? puzzle.clues[side][1] : "";
+  }
+  for (const side of ["left", "right"]) $(side).textContent = puzzle.clues[side];
+  $("entry").setAttribute("aria-label", two ? "第一个字" : "填入一个汉字");
+  $("entry-two").disabled = !two;
+  $("entry-two").readOnly = false;
   $("level-title").textContent = `第 ${current + 1} 关`;
   $("level-count").textContent = `${current + 1} / ${campaign.puzzles.length}`;
   $("progress").max = campaign.puzzles.length;
@@ -194,17 +238,23 @@ async function route() {
   clearEntry();
   const [requestedView, requestedLevel] = location.hash.slice(1).split("/");
   let name = requestedView || "home";
+  if (["levels", "play", "complete", "levels-two", "play-two", "complete-two"].includes(name)) {
+    activate(name.endsWith("-two") ? twoMode : oneMode);
+    name = name.replace(/-two$/, "");
+  }
+  for (const label of document.querySelectorAll(".mode-label")) label.textContent = modes[activeMode].label;
+  for (const link of document.querySelectorAll('#play .back, #complete .back')) link.href = `#${modeRoute("levels")}`;
   if (!["home", "types", "levels", "play", "complete"].includes(name)) name = "home";
   for (const section of document.querySelectorAll(".view")) section.hidden = section.id !== name;
   $(name).querySelector("h1")?.focus({ preventScroll: true });
   if (name === "home") return;
   const request = generation;
   try {
-    await loadCampaign();
+    await (name === "types" ? Promise.all(Object.keys(modes).map(loadCampaign)) : loadCampaign());
     if (request !== generation) return;
     syncProgress();
     if (request !== generation) return;
-    $("saved-progress").textContent = `${completed} / ${campaign.puzzles.length}`;
+    refreshProgressUi();
     if (name === "levels") {
       fitLevelGrid();
       levelPage = Math.floor(Math.min(current, completed, campaign.puzzles.length - 1) / pageSize);
@@ -243,9 +293,10 @@ async function route() {
 $("puzzle-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!campaign || busy || solved || composing || $("entry").disabled) return;
-  const value = $("entry").value.trim().normalize("NFC");
-  if (!/^\p{Unified_Ideograph}$/u.test(value)) {
-    feedback("请输入一个汉字", "error");
+  const values = entries().map(input => input.value.trim().normalize("NFC"));
+  const value = values.join("");
+  if (!values.every(v => /^\p{Unified_Ideograph}$/u.test(v))) {
+    feedback(activeMode === twoMode ? "请在两个空格各填一个汉字" : "请输入一个汉字", "error");
     $("entry").setAttribute("aria-invalid", "true");
     $("entry").focus();
     return;
@@ -268,9 +319,11 @@ $("puzzle-form").addEventListener("submit", async (event) => {
     }
     solved = true;
     // Keep the player's current input visible; navigation clears it.
-    $("entry").readOnly = true;
-    $("entry").classList.add("solved");
-    $("entry").removeAttribute("aria-invalid");
+    for (const input of entries()) {
+      input.readOnly = true;
+      input.classList.add("solved");
+      input.removeAttribute("aria-invalid");
+    }
     feedback("过关！", "success");
     completed = Math.max(completed, current + 1);
     await saveProgress();
@@ -286,22 +339,56 @@ $("puzzle-form").addEventListener("submit", async (event) => {
   }
 });
 
-function limitEntry() {
-  // Count Unicode code points, preserving supplementary-plane Hanzi intact.
-  $("entry").value = Array.from($("entry").value.trim().normalize("NFC"))[0] || "";
+function limitEntry(input) {
+  const characters = Array.from(input.value.trim().normalize("NFC"));
+  if (activeMode === twoMode && characters.length >= 2) {
+    // A committed word or pasted phrase fills the whole answer from left to right.
+    entries().forEach((field, index) => {
+      field.value = characters[index];
+      field.removeAttribute("aria-invalid");
+    });
+  } else {
+    input.value = characters[0] || "";
+  }
 }
-$("entry").addEventListener("compositionstart", () => { composing = true; });
-$("entry").addEventListener("compositionend", () => { composing = false; limitEntry(); });
-$("entry").addEventListener("input", (event) => {
-  // Invalidate a pending digest if the user changes input before it returns.
-  if (busy) { generation++; busy = false; $("submit").disabled = false; }
-  feedback();
-  $("entry").removeAttribute("aria-invalid");
-  if (!composing && !event.isComposing) limitEntry();
-});
-$("entry").addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && (event.isComposing || event.keyCode === 229)) event.preventDefault();
-});
+function backspaceToFirst(input, event) {
+  if (activeMode !== twoMode || input !== $("entry-two") || input.value !== "" ||
+      input.disabled || input.readOnly || solved || composing || event.isComposing || event.keyCode === 229 ||
+      $("entry").disabled || $("entry").readOnly) return;
+  event.preventDefault();
+  $("entry").value = "";
+  // Use the normal input handler to clear errors and cancel any pending validation.
+  $("entry").dispatchEvent(new Event("input", { bubbles: true }));
+  $("entry").focus({ preventScroll: true });
+}
+for (const input of [$("entry"), $("entry-two")]) {
+  input.addEventListener("compositionstart", () => { composing = true; });
+  input.addEventListener("compositionend", () => { composing = false; limitEntry(input); });
+  input.addEventListener("input", (event) => {
+    if (busy) { generation++; busy = false; $("submit").disabled = false; }
+    feedback();
+    input.removeAttribute("aria-invalid");
+    if (!composing && !event.isComposing) limitEntry(input);
+  });
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && (event.isComposing || event.keyCode === 229)) event.preventDefault();
+    if (event.key === "Backspace") backspaceToFirst(input, event);
+    if (activeMode === twoMode && !composing && !event.isComposing && event.keyCode !== 229 &&
+        !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey &&
+        !input.disabled && !input.readOnly && !solved) {
+      const target = event.key === "ArrowRight" && input === $("entry") ? $("entry-two") :
+        event.key === "ArrowLeft" && input === $("entry-two") ? $("entry") : null;
+      if (target && !target.disabled && !target.readOnly) {
+        event.preventDefault();
+        target.focus({ preventScroll: true });
+        target.select();
+      }
+    }
+  });
+  input.addEventListener("beforeinput", (event) => {
+    if (event.inputType === "deleteContentBackward") backspaceToFirst(input, event);
+  });
+}
 $("previous").addEventListener("click", () => { if (current > 0) navigate(`play/${current}`, { replace: true }); });
 $("hide-answer").addEventListener("click", () => {
   if ($("hide-answer").hidden) return;
@@ -315,6 +402,31 @@ $("review-next").addEventListener("click", () => {
     navigate(`play/${current + 2}`, { replace: true });
   }
 });
+let twoWords;
+async function* revealCandidates(mode) {
+  if (mode === twoMode) {
+    if (!twoWords) {
+      const response = await fetch(new URL("./hsk-two-words.json", import.meta.url));
+      if (!response.ok) throw new Error("vocabulary load");
+      const data = await response.json();
+      if (data.version !== "hsk-two-words-v1" || !Array.isArray(data.words)) throw new Error("vocabulary format");
+      twoWords = data.words;
+    }
+    for (let offset = 0; offset < twoWords.length; offset += 256) yield twoWords.slice(offset, offset + 256);
+    return;
+  }
+  const ranges = [[0x4e00, 0x9fff], [0x3400, 0x4dbf], [0, 0x33ff], [0x4dc0, 0x4dff], [0xa000, 0x10ffff]];
+  for (const [start, end] of ranges) {
+    for (let offset = start; offset <= end; offset += 256) {
+      const candidates = [];
+      for (let code = offset; code <= Math.min(end, offset + 255); code++) {
+        const value = String.fromCodePoint(code);
+        if (/^\p{Unified_Ideograph}$/u.test(value)) candidates.push(value);
+      }
+      yield candidates;
+    }
+  }
+}
 $("reveal").addEventListener("click", async () => {
   if (!campaign || current >= completed || busy || solved) return;
   const request = generation;
@@ -323,20 +435,12 @@ $("reveal").addEventListener("click", async () => {
   $("reveal").disabled = true;
   $("reveal").textContent = "查看中…";
   $("submit").disabled = true;
-  $("entry").readOnly = true;
+  for (const input of entries()) input.readOnly = true;
   const encoder = new TextEncoder();
   const prefix = `${campaign.version}:${puzzle.id}:${puzzle.salt}:`;
-  // Search generic Unicode candidates only on demand; never store a solution table.
-  const ranges = [[0x4e00, 0x9fff], [0x3400, 0x4dbf], [0, 0x33ff], [0x4dc0, 0x4dff], [0xa000, 0x10ffff]];
   try {
-    for (const [start, end] of ranges) {
-      for (let offset = start; offset <= end; offset += 256) {
-        if (request !== generation) return;
-        const candidates = [];
-        for (let code = offset; code <= Math.min(end, offset + 255); code++) {
-          const value = String.fromCodePoint(code);
-          if (/^\p{Unified_Ideograph}$/u.test(value)) candidates.push(value);
-        }
+    for await (const candidates of revealCandidates(activeMode)) {
+      if (request !== generation) return;
         const matches = await Promise.all(candidates.map(async value => {
           const digest = await crypto.subtle.digest("SHA-256", encoder.encode(prefix + value.normalize("NFC")));
           const check = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
@@ -346,9 +450,11 @@ $("reveal").addEventListener("click", async () => {
         const match = matches.find(Boolean);
         if (match) {
           $("puzzle-form").classList.add("reviewing");
-          $("entry").value = match;
-          $("entry").classList.add("solved");
-          $("entry").removeAttribute("aria-invalid");
+          entries().forEach((input, i) => {
+            input.value = Array.from(match)[i];
+            input.classList.add("solved");
+            input.removeAttribute("aria-invalid");
+          });
           solved = true;
           $("submit").hidden = true;
           $("reveal").hidden = true;
@@ -359,7 +465,6 @@ $("reveal").addEventListener("click", async () => {
           return;
         }
         await new Promise(resolve => setTimeout(resolve, 0));
-      }
     }
     throw new Error("No matching candidate");
   } catch {
@@ -370,7 +475,7 @@ $("reveal").addEventListener("click", async () => {
       $("reveal").disabled = false;
       $("reveal").textContent = "查看答案";
       $("submit").disabled = false;
-      $("entry").readOnly = solved;
+      for (const input of entries()) input.readOnly = solved;
     }
   }
 });
@@ -384,7 +489,7 @@ document.addEventListener("click", (event) => {
   const link = event.target.closest('a[href^="#"]');
   if (!link || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
   event.preventDefault();
-  navigate(link.hash.slice(1), { back: link.classList.contains("back") });
+  navigate(link.hash.slice(1), { back: link.classList.contains("back"), mode: link.id === "start" ? oneMode : activeMode });
 });
 $("help-open").addEventListener("click", () => {
   $("help-dialog").showModal();
@@ -399,12 +504,16 @@ async function saveAction(action) {
   if (saveBusy) return;
   saveBusy = true;
   $("save-export").disabled = $("save-import").disabled = true;
-  try { await loadCampaign(); syncProgress(); await action(); }
+  try { await Promise.all(Object.keys(modes).map(loadCampaign)); syncProgress(); await action(); }
   catch (error) { $("save-status").textContent = error.message || "操作失败，请重试"; }
   finally { saveBusy = false; $("save-export").disabled = $("save-import").disabled = false; }
 }
 $("save-export").addEventListener("click", () => saveAction(async () => {
-  const code = await encodeSave({ [activeMode]: { revision: campaign.revision, completed } });
+  const progress = {};
+  for (const [mode, state] of Object.entries(modes)) {
+    if (mode === oneMode || state.completed > 0) progress[mode] = { revision: state.data.revision, completed: state.completed };
+  }
+  const code = await encodeSave(progress);
   $("save-code").value = code;
   try {
     await navigator.clipboard.writeText(code);
@@ -416,15 +525,25 @@ $("save-export").addEventListener("click", () => saveAction(async () => {
 }));
 $("save-import").addEventListener("click", () => saveAction(async () => {
   const incoming = await decodeSave($("save-code").value);
-  const record = migrateProgress(incoming[activeMode], campaign.revision);
-  if (!record) throw new Error("存档中没有当前模式的进度");
-  if (record.revision !== campaign.revision) throw new Error("存档题集与当前版本不同");
-  if (record.completed > campaign.puzzles.length) throw new Error("进度超出当前关卡数量");
-  completed = Math.max(completed, record.completed);
-  const persisted = await saveProgress();
-  current = Math.min(completed, campaign.puzzles.length - 1);
+  const updates = [];
+  for (const [mode, state] of Object.entries(modes)) {
+    if (!incoming[mode]) continue;
+    const record = mode === oneMode ? migrateProgress(incoming[mode], state.data.revision) : incoming[mode];
+    if (record.revision !== state.data.revision) throw new Error("存档题集与当前版本不同");
+    if (record.completed > state.data.puzzles.length) throw new Error("进度超出当前关卡数量");
+    updates.push([mode, record.completed]);
+  }
+  if (!updates.length) throw new Error("存档中没有支持的模式进度");
+  // Validate every supported record before changing either mode.
   clearEntry();
-  await navigate("levels", { back: navigationPath().includes("levels") });
+  for (const [mode, count] of updates) modes[mode].completed = Math.max(modes[mode].completed, count);
+  completed = modes[activeMode].completed;
+  let persisted = true;
+  for (const [mode] of updates) if (!await saveProgress(mode)) persisted = false;
+  const destination = incoming[activeMode] ? activeMode : updates[0][0];
+  activate(destination);
+  current = Math.min(completed, campaign.puzzles.length - 1);
+  await navigate("levels", { back: navigationPath().includes(modeRoute("levels")) });
   $("save-status").textContent = !persisted ? "已导入本次游戏，但浏览器未能保存，请保留存档码" :
     "已导入，保留较高进度";
 }));

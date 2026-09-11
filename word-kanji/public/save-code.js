@@ -1,7 +1,7 @@
 // Portable progress only: no player inputs, solutions, or identity credentials.
 const plain = (value) => value && typeof value === "object" && !Array.isArray(value);
 // Add future modes here; absence in an older code means no saved progress.
-const knownModes = ["campaign-one-standard"];
+const knownModes = ["campaign-one-standard", "campaign-two-standard"];
 
 export function migrateProgress(record, targetRevision) {
   if (record?.revision === "cbe3a2f1ecd820a5" && targetRevision === "3a92ed63edc4ea56" &&

@@ -14,3 +14,5 @@
 本地可运行 `python word-kanji/scripts/build_site.py --output <空输出目录> --base-path /puzzle`；域名根目录部署时省略 `--base-path`。发布目录不得改成整个仓库。
 
 当前验证包括本地打包和浏览器检查；实际 GitHub Pages HTTPS 部署及真实手机键盘、剪贴板体验仍需在发布后检查。
+
+2026-09-11 公开产物白名单增加 `campaign-two.json` 和完整通用词表 `hsk-two-words.json`，不打包私有生成缓存。原 `campaign.json` 不重新导出，保留一字题库版本和旧存档兼容性。新增二字路由在同一 `/puzzle/word-kanji/` 下使用 hash，不增加服务器路径规则。

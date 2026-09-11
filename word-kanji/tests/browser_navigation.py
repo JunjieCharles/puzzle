@@ -1,5 +1,6 @@
 """Optional browser history regression checks using only synthetic puzzles."""
 import sys
+import argparse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -10,7 +11,9 @@ from playwright.sync_api import sync_playwright
 
 
 def main():
-    url = "http://localhost:8000/puzzle/word-kanji/"
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--url", default="http://localhost:8000/puzzle/word-kanji/")
+    url = parser.parse_args().url.rstrip("/") + "/"
     data = {"version": VERSION, "revision": "c" * 16,
             "puzzles": [public_record(sample(i, i, 1)) for i in range(2)]}
     with sync_playwright() as pw:

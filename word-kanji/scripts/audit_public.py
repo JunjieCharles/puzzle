@@ -4,8 +4,10 @@ import json
 import re
 from pathlib import Path
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "word-kanji"))
 SENSITIVE_KEYS = {"answer", "answers", "edge_words", "broad_unique_answer", "source_puzzle_id", "top_candidate_contributors"}
 
 
@@ -62,6 +64,54 @@ def inspect_json(value, location="$"):
     return errors
 
 
+def inspect_two_campaign(value):
+    from generator import is_hanzi_word, LEVELS
+    if not isinstance(value, dict) or set(value) != {"version", "revision", "puzzles"}:
+        return ["invalid two-cell envelope"]
+    if value["version"] != "kanji-two-v1" or not re.fullmatch(r"[0-9a-f]{16}", str(value["revision"])):
+        return ["invalid two-cell version/revision"]
+    if not isinstance(value["puzzles"], list) or not value["puzzles"]:
+        return ["empty two-cell campaign"]
+    errors, ids = [], set()
+    for record in value["puzzles"]:
+        if not isinstance(record, dict) or set(record) != {"id", "clues", "levels", "difficulty", "salt", "check"}:
+            errors.append("unexpected two-cell fields")
+            continue
+        for key, length in (("id", 32), ("salt", 32), ("check", 64)):
+            if not isinstance(record[key], str) or not re.fullmatch(rf"[0-9a-f]{{{length}}}", record[key]):
+                errors.append(f"invalid two-cell {key}")
+        if str(record["id"]) in ids:
+            errors.append("duplicate two-cell ID")
+        ids.add(str(record["id"]))
+        for key in ("clues", "levels"):
+            fields = {"top", "bottom", "left", "right"} | ({"middle"} if key == "levels" else set())
+            data = record[key]
+            if not isinstance(data, dict) or set(data) != fields:
+                errors.append(f"invalid two-cell {key}")
+                continue
+            values = []
+            for side in fields:
+                item = data[side]
+                if side in ("top", "bottom"):
+                    if not isinstance(item, list) or len(item) != 2:
+                        errors.append(f"invalid two-cell {key} pair")
+                        continue
+                    values.extend(item)
+                else:
+                    values.append(item)
+            if any(not isinstance(v, str) or not (len(v) == 1 and is_hanzi_word(v) if key == "clues" else v in LEVELS) for v in values):
+                errors.append(f"invalid two-cell {key} value")
+            if key == "clues" and len({str(v) for v in values}) != 6:
+                errors.append("repeated two-cell clues")
+        score = record["difficulty"]
+        # Legacy exports used the six-count selection score; new exports expose
+        # only the minimax scalar, never the answer-specific intermediate counts.
+        if not ((type(score) is int and 1 <= score <= 0x110000) or
+                (isinstance(score, list) and len(score) == 6 and all(type(v) is int and 1 <= v <= 0x110000 for v in score) and score == sorted(score))):
+            errors.append("invalid two-cell difficulty")
+    return errors
+
+
 def inspect_file(name, payload):
     path = Path(name)
     if (path.suffix in {".sqlite", ".db", ".bundle", ".pyc"}
@@ -72,6 +122,14 @@ def inspect_file(name, payload):
         errors = inspect_json(value)
         if path.name == "campaign.json":
             errors.extend(inspect_campaign(value))
+        elif path.name == "campaign-two.json":
+            errors.extend(inspect_two_campaign(value))
+        elif path.name == "hsk-two-words.json":
+            # Exact full HSK vocabulary, never a puzzle-specific candidate list.
+            from generator import Lexicon
+            expected = {"version": "hsk-two-words-v1", "words": sorted(w for w in Lexicon.load().records if len(w) == 2)}
+            if value != expected:
+                errors.append("two-word vocabulary must equal the complete generic HSK list")
         return errors
     return []
 
