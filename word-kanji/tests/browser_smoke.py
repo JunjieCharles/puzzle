@@ -64,7 +64,7 @@ def main():
         page.locator("#level-grid button").first.wait_for(state="visible")
         page_size = int(page.locator("#level-grid").get_attribute("data-page-size"))
         assert page.locator("#level-grid button").count() == page_size
-        assert page.locator("#level-grid button:disabled").count() == page_size - 1
+        assert page.locator("#level-grid button:disabled").count() == page_size - 3
         page.locator("#page-select").select_option(str((total - 1) // page_size))
         assert page.locator("#level-grid button").count() == (total - 1) % page_size + 1
         assert page.locator("#level-grid button").last.inner_text() == str(total)
@@ -143,8 +143,8 @@ def main():
         page.locator("#entry").fill(toy(0))
         page.locator("#submit").click()
         page.locator("#next").wait_for(state="visible")
-        saved = page.evaluate("JSON.parse(localStorage.getItem('word-kanji:campaign:v1'))")
-        assert saved == {"revision": data["revision"], "completed": 1}
+        saved = page.evaluate("JSON.parse(localStorage.getItem('word-kanji:campaign:v2'))")
+        assert saved == {"revision": data["revision"], "completed": 1, "pending": [2]}
         assert page.locator("#level-count").inner_text() == "1 / 2"
         # Navigating away during the success pause must cancel automatic advance.
         page.locator('#play a[href="#levels"]').click()
@@ -178,9 +178,9 @@ def main():
         page.locator("#complete-count").wait_for(state="visible")
         assert page.locator("#complete-count").inner_text() == "2 / 2"
         assert page.locator("#replay").count() == 0
-        assert page.evaluate("JSON.parse(localStorage.getItem('word-kanji:campaign:v1')).completed") == 2
+        assert page.evaluate("JSON.parse(localStorage.getItem('word-kanji:campaign:v2')).completed") == 2
         # Corrupt progress is ignored rather than crashing or unlocking a level.
-        page.evaluate("localStorage.setItem('word-kanji:campaign:v1', '{')")
+        page.evaluate("localStorage.setItem('word-kanji:campaign:v2', '{')")
         page.goto(args.url + "/#play/1")
         page.reload()
         page.wait_for_function("document.querySelector('#entry').disabled === false")

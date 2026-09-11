@@ -43,7 +43,7 @@ def main():
         assert not page.locator("#entry").evaluate("e => e.readOnly")
         assert page.locator("#submit").is_visible()
         assert page.locator("#reveal").is_visible()
-        assert page.locator("#review-next").is_hidden()
+        assert page.locator("#review-next").is_visible()
         page.locator("#reveal").click()
         page.locator("#hide-answer").wait_for(state="visible")
         length = page.evaluate("history.length")
@@ -51,7 +51,7 @@ def main():
         page.wait_for_url("**/#play/2")
         assert page.evaluate("history.length") == length
         assert page.locator("#entry").input_value() == ""
-        assert page.locator("#review-next").is_hidden()
+        assert page.locator("#review-next").is_visible()
         assert page.evaluate("JSON.stringify(localStorage)") == stored
         page.locator("#previous").click()
         page.wait_for_url("**/#play/1")

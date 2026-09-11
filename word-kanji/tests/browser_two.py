@@ -120,7 +120,7 @@ def main():
         page.locator("#entry").fill(rows[0]["answer"])
         page.locator("#submit").click()
         page.wait_for_url("**/#play-two/2")
-        saved_two = page.evaluate("localStorage.getItem('word-kanji:campaign-two:v1')")
+        saved_two = page.evaluate("localStorage.getItem('word-kanji:campaign-two:v2')")
         assert json.loads(saved_two)["completed"] == 1
         assert page.evaluate("localStorage.getItem('word-kanji:campaign:v1')") is None
         page.reload()
@@ -131,7 +131,7 @@ def main():
         assert page.locator("#entry").input_value() + page.locator("#entry-two").input_value() == rows[0]["answer"]
         page.locator("#hide-answer").click()
         assert not page.locator("#entry").input_value() and not page.locator("#entry-two").input_value()
-        assert page.evaluate("localStorage.getItem('word-kanji:campaign-two:v1')") == saved_two
+        assert page.evaluate("localStorage.getItem('word-kanji:campaign-two:v2')") == saved_two
 
         # A genuine v1 one-mode code remains valid, including while playing two-cell mode.
         old_code = page.evaluate("""async () => (await import('./save-code.js')).encodeSave({
@@ -140,7 +140,7 @@ def main():
         page.locator("#save-import").click()
         page.wait_for_function("document.querySelector('#levels-count').textContent === '2 / 3'")
         assert page.url.endswith("#levels")
-        assert page.evaluate("localStorage.getItem('word-kanji:campaign-two:v1')") == saved_two
+        assert page.evaluate("localStorage.getItem('word-kanji:campaign-two:v2')") == saved_two
         page.locator("#save-export").click()
         page.wait_for_function("old => document.querySelector('#save-code').value !== old", arg=old_code)
         combined = page.locator("#save-code").input_value()
@@ -154,6 +154,12 @@ def main():
         page.locator("#save-code").fill(invalid); page.locator("#save-import").click()
         page.wait_for_function("!document.querySelector('#save-import').disabled")
         assert page.evaluate("({...localStorage})") == before
+        inconsistent = page.evaluate("""async revision => (await import('./save-code.js')).encodeSave({
+          'campaign-one-standard': {revision:'cccccccccccccccc',completed:3,pending:[]},
+          'campaign-two-standard': {revision,completed:1,pending:[1]}})""", two["revision"])
+        page.locator("#save-code").fill(inconsistent); page.locator("#save-import").click()
+        page.wait_for_function("!document.querySelector('#save-import').disabled")
+        assert page.evaluate("({...localStorage})") == before
         page.keyboard.press("Escape")
         page.goto(url + "#types"); page.locator("#start-two").click()
         page.locator("#levels .back").click(); page.locator("#start").click()
@@ -161,8 +167,8 @@ def main():
         page.locator("#level-grid button").first.click()
         assert page.locator("#entry-two").is_hidden()
         page.locator("#entry").fill(toy(0)); page.locator("#submit").click()
-        page.wait_for_url("**/#play/2")
-        assert page.evaluate("localStorage.getItem('word-kanji:campaign-two:v1')") == saved_two
+        page.wait_for_url("**/#play/3")
+        assert page.evaluate("localStorage.getItem('word-kanji:campaign-two:v2')") == saved_two
         assert not errors, errors
         # New browser restores both modes from the same code.
         fresh = context.new_page()
@@ -170,9 +176,9 @@ def main():
         fresh.goto(url)
         fresh.locator("#save-open").click(); fresh.locator("#save-code").fill(combined)
         fresh.locator("#save-import").click()
-        fresh.wait_for_function("localStorage.getItem('word-kanji:campaign-two:v1') !== null")
-        assert json.loads(fresh.evaluate("localStorage.getItem('word-kanji:campaign:v1')"))["completed"] == 2
-        assert json.loads(fresh.evaluate("localStorage.getItem('word-kanji:campaign-two:v1')"))["completed"] == 1
+        fresh.wait_for_function("localStorage.getItem('word-kanji:campaign-two:v2') !== null")
+        assert json.loads(fresh.evaluate("localStorage.getItem('word-kanji:campaign:v2')"))["completed"] == 2
+        assert json.loads(fresh.evaluate("localStorage.getItem('word-kanji:campaign-two:v2')"))["completed"] == 1
         browser.close()
     print("Two-cell browser checks passed: input, layout, progress isolation, reveal, legacy and multi-mode saves.")
 

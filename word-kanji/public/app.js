@@ -1,18 +1,23 @@
-import { encodeSave, decodeSave, migrateProgress } from "./save-code.js";
+import { encodeSave, decodeSave, migrateProgress, passedLevels, progressRecord } from "./save-code.js?v=progress-2";
 const $ = (id) => document.getElementById(id);
 const oneMode = "campaign-one-standard", twoMode = "campaign-two-standard";
 const modes = {
-  [oneMode]: { file: "campaign.json", version: "kanji-one-v1", key: "word-kanji:campaign:v1", label: "一字标准型", size: 1, completed: 0, current: 0 },
-  [twoMode]: { file: "campaign-two.json", version: "kanji-two-v1", key: "word-kanji:campaign-two:v1", label: "二字标准型", size: 2, completed: 0, current: 0 },
+  [oneMode]: { file: "campaign.json", version: "kanji-one-v1", legacyKey: "word-kanji:campaign:v1", key: "word-kanji:campaign:v2", label: "一字标准型", size: 1, completed: 0, passed: new Set(), current: 0 },
+  [twoMode]: { file: "campaign-two.json", version: "kanji-two-v1", legacyKey: "word-kanji:campaign-two:v1", key: "word-kanji:campaign-two:v2", label: "二字标准型", size: 2, completed: 0, passed: new Set(), current: 0 },
 };
 let activeMode = oneMode;
 let campaign, completed = 0, current = 0, generation = 0, busy = false, solved = false;
 const entries = () => modes[activeMode].size === 2 ? [$("entry"), $("entry-two")] : [$("entry")];
+const unlockedCount = () => Math.min(campaign.puzzles.length, completed + 3);
+const isPassed = index => modes[activeMode].passed.has(index + 1);
+function nextUnpassed(after = -1) {
+  const pending = Array.from({ length: unlockedCount() }, (_, i) => i).filter(i => !isPassed(i));
+  return pending.find(i => i > after) ?? pending[0];
+}
 function modeRoute(target, mode = activeMode) {
   return mode === twoMode ? target.replace(/^(levels|play|complete)(?=\/|$)/, "$1-two") : target;
 }
 function activate(mode) {
-  modes[activeMode].completed = completed;
   modes[activeMode].current = current;
   activeMode = mode;
   campaign = modes[mode].data;
@@ -52,7 +57,8 @@ function navigate(target, { replace = false, back = false, mode = activeMode } =
 function scheduleAdvance() {
   const request = generation;
   const from = location.hash;
-  const target = current + 1 === campaign.puzzles.length ? "complete" : `play/${current + 2}`;
+  const next = nextUnpassed(current);
+  const target = next === undefined ? "complete" : `play/${next + 1}`;
   const active = () => request === generation && location.hash === from && solved;
   departureTimer = setTimeout(() => {
     if (active()) $("puzzle-form").classList.add("departing");
@@ -87,11 +93,11 @@ function drawLevels() {
   for (let index = levelPage * pageSize; index < Math.min(total, (levelPage + 1) * pageSize); index++) {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = `level-tile${index < completed ? " passed" : ""}`;
+    button.className = `level-tile${isPassed(index) ? " passed" : ""}`;
     button.textContent = String(index + 1);
-    button.disabled = index > completed;
-    button.setAttribute("aria-label", `第 ${index + 1} 关${index < completed ? "，已通关" : index > completed ? "，未解锁" : ""}`);
-    if (index === completed) button.setAttribute("aria-current", "step");
+    button.disabled = index >= unlockedCount();
+    button.setAttribute("aria-label", `第 ${index + 1} 关${isPassed(index) ? "，已通关" : button.disabled ? "，未解锁" : ""}`);
+    if (index === nextUnpassed()) button.setAttribute("aria-current", "step");
     button.addEventListener("click", () => navigate(`play/${index + 1}`));
     grid.append(button);
   }
@@ -112,15 +118,27 @@ function drawLevels() {
 
 function readProgress(mode = activeMode) {
   const state = modes[mode];
-  if (!state.data) return 0;
-  try {
-    const raw = JSON.parse(localStorage.getItem(state.key));
-    const value = mode === oneMode ? migrateProgress(raw, state.data.revision) : raw;
-    if (value?.revision === state.data.revision && Number.isSafeInteger(value.completed)) {
-      return Math.max(0, Math.min(state.data.puzzles.length, value.completed));
-    }
-  } catch { /* Playing remains available when storage is disabled. */ }
-  return 0;
+  const passed = new Set();
+  if (!state.data) return passed;
+  // Keep v1 untouched; old tabs can still advance it without erasing v2 holes.
+  for (const key of [state.legacyKey, state.key]) {
+    try {
+      const raw = JSON.parse(localStorage.getItem(key));
+      const value = mode === oneMode ? migrateProgress(raw, state.data.revision) : raw;
+      if (value?.revision === state.data.revision) {
+        if (key === state.key && !Object.hasOwn(value, "pending")) continue;
+        for (const n of passedLevels(value, state.data.puzzles.length)) passed.add(n);
+      }
+    } catch { /* One damaged/unavailable record must not discard the other. */ }
+  }
+  return passed;
+}
+
+function mergePassed(mode, passed) {
+  const state = modes[mode];
+  for (const n of passed) state.passed.add(n);
+  state.completed = state.passed.size;
+  if (mode === activeMode) completed = state.completed;
 }
 
 function refreshProgressUi() {
@@ -133,7 +151,7 @@ function refreshProgressUi() {
 
 function syncProgress() {
   for (const [mode, state] of Object.entries(modes)) {
-    state.completed = Math.max(state.completed, mode === activeMode ? completed : 0, readProgress(mode));
+    mergePassed(mode, readProgress(mode));
   }
   completed = modes[activeMode].completed;
   refreshProgressUi();
@@ -141,15 +159,14 @@ function syncProgress() {
 
 async function saveProgress(mode = activeMode) {
   const state = modes[mode];
-  state.completed = Math.max(state.completed, mode === activeMode ? completed : 0);
   try {
     const write = () => {
-      state.completed = Math.max(state.completed, readProgress(mode));
-      localStorage.setItem(state.key, JSON.stringify({ revision: state.data.revision, completed: state.completed }));
+      mergePassed(mode, readProgress(mode));
+      localStorage.setItem(state.key, JSON.stringify(progressRecord(state.passed, state.data.puzzles.length, state.data.revision)));
     };
     if (navigator.locks) await navigator.locks.request(state.key, write);
     else write();
-    if (mode === activeMode) completed = Math.max(completed, state.completed);
+    if (mode === activeMode) completed = state.completed;
     state.unsaved = false;
     $("save-warning").hidden = !Object.values(modes).some(s => s.unsaved);
     refreshProgressUi();
@@ -171,12 +188,12 @@ async function loadCampaign(mode = activeMode) {
         const data = await response.json();
         if (data.version !== state.version || !data.puzzles?.length) throw new Error("题集格式无效");
         state.data = data;
-        state.completed = Math.max(state.completed, readProgress(mode));
+        mergePassed(mode, readProgress(mode));
       })().finally(() => { state.loading = undefined; });
     }
     await state.loading;
   }
-  if (mode === activeMode) { campaign = state.data; completed = Math.max(completed, state.completed); }
+  if (mode === activeMode) { campaign = state.data; completed = state.completed; }
 }
 
 function feedback(text = "", state = "") {
@@ -229,7 +246,9 @@ function draw() {
   $("next").hidden = true;
   $("retry").hidden = true;
   $("previous").disabled = current === 0;
-  $("reveal").hidden = current >= completed;
+  $("reveal").hidden = !isPassed(current);
+  $("review-next").hidden = false;
+  $("review-next").disabled = current + 1 >= unlockedCount();
   $("puzzle-form").classList.add("arriving");
   $("entry").focus({ preventScroll: true });
 }
@@ -257,19 +276,19 @@ async function route() {
     refreshProgressUi();
     if (name === "levels") {
       fitLevelGrid();
-      levelPage = Math.floor(Math.min(current, completed, campaign.puzzles.length - 1) / pageSize);
+      levelPage = Math.floor(Math.min(current, unlockedCount() - 1) / pageSize);
       drawLevels();
     } else if (name === "play") {
       if (requestedLevel !== undefined) {
         const selected = Number(requestedLevel) - 1;
-        if (!/^\d+$/.test(requestedLevel) || !Number.isInteger(selected) || selected < 0 || selected > completed || selected >= campaign.puzzles.length) {
+        if (!/^\d+$/.test(requestedLevel) || !Number.isInteger(selected) || selected < 0 || selected >= unlockedCount()) {
           navigate("levels", { back: true });
           return;
         }
         current = selected;
       } else {
         if (completed === campaign.puzzles.length) { navigate("complete", { replace: true }); return; }
-        current = completed;
+        current = nextUnpassed();
       }
       draw();
     } else if (name === "complete") {
@@ -325,7 +344,7 @@ $("puzzle-form").addEventListener("submit", async (event) => {
       input.removeAttribute("aria-invalid");
     }
     feedback("过关！", "success");
-    completed = Math.max(completed, current + 1);
+    mergePassed(activeMode, [current + 1]);
     await saveProgress();
     if (request !== generation) return;
     $("progress").value = completed;
@@ -396,9 +415,11 @@ $("hide-answer").addEventListener("click", () => {
   $("submit").hidden = false;
   $("submit").disabled = false;
   $("reveal").hidden = false;
+  $("review-next").hidden = false;
+  $("review-next").disabled = current + 1 >= unlockedCount();
 });
 $("review-next").addEventListener("click", () => {
-  if (!$("review-next").hidden && current + 1 < campaign.puzzles.length && current < completed) {
+  if (!$("review-next").hidden && current + 1 < unlockedCount()) {
     navigate(`play/${current + 2}`, { replace: true });
   }
 });
@@ -428,7 +449,7 @@ async function* revealCandidates(mode) {
   }
 }
 $("reveal").addEventListener("click", async () => {
-  if (!campaign || current >= completed || busy || solved) return;
+  if (!campaign || !isPassed(current) || busy || solved) return;
   const request = generation;
   const puzzle = campaign.puzzles[current];
   busy = true;
@@ -460,7 +481,7 @@ $("reveal").addEventListener("click", async () => {
           $("reveal").hidden = true;
           $("hide-answer").hidden = false;
           $("review-next").hidden = false;
-          $("review-next").disabled = current + 1 >= campaign.puzzles.length;
+          $("review-next").disabled = current + 1 >= unlockedCount();
           feedback("答案已显示", "success");
           return;
         }
@@ -511,7 +532,7 @@ async function saveAction(action) {
 $("save-export").addEventListener("click", () => saveAction(async () => {
   const progress = {};
   for (const [mode, state] of Object.entries(modes)) {
-    if (mode === oneMode || state.completed > 0) progress[mode] = { revision: state.data.revision, completed: state.completed };
+    if (mode === oneMode || state.completed > 0) progress[mode] = progressRecord(state.passed, state.data.puzzles.length, state.data.revision);
   }
   const code = await encodeSave(progress);
   $("save-code").value = code;
@@ -530,22 +551,21 @@ $("save-import").addEventListener("click", () => saveAction(async () => {
     if (!incoming[mode]) continue;
     const record = mode === oneMode ? migrateProgress(incoming[mode], state.data.revision) : incoming[mode];
     if (record.revision !== state.data.revision) throw new Error("存档题集与当前版本不同");
-    if (record.completed > state.data.puzzles.length) throw new Error("进度超出当前关卡数量");
-    updates.push([mode, record.completed]);
+    updates.push([mode, passedLevels(record, state.data.puzzles.length)]);
   }
   if (!updates.length) throw new Error("存档中没有支持的模式进度");
   // Validate every supported record before changing either mode.
   clearEntry();
-  for (const [mode, count] of updates) modes[mode].completed = Math.max(modes[mode].completed, count);
+  for (const [mode, passed] of updates) mergePassed(mode, passed);
   completed = modes[activeMode].completed;
   let persisted = true;
   for (const [mode] of updates) if (!await saveProgress(mode)) persisted = false;
   const destination = incoming[activeMode] ? activeMode : updates[0][0];
   activate(destination);
-  current = Math.min(completed, campaign.puzzles.length - 1);
+  current = nextUnpassed() ?? campaign.puzzles.length - 1;
   await navigate("levels", { back: navigationPath().includes(modeRoute("levels")) });
   $("save-status").textContent = !persisted ? "已导入本次游戏，但浏览器未能保存，请保留存档码" :
-    "已导入，保留较高进度";
+    "已导入，合并已通过题目";
 }));
 let resizeFrame;
 window.addEventListener("resize", () => {

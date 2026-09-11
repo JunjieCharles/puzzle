@@ -27,7 +27,7 @@ def main():
         page.goto(url)
         page.locator("#save-open").click()
         page.locator("#save-export").click()
-        page.wait_for_function("document.querySelector('#save-code').value.startsWith('HT101-1.')")
+        page.wait_for_function("document.querySelector('#save-code').value.startsWith('HT101-2.')")
         code = page.locator("#save-code").input_value()
         assert page.locator("#save-code").evaluate("e => e.selectionEnd === e.value.length")
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
@@ -67,15 +67,15 @@ def main():
         other.locator("#save-code").fill(" \n" + code[:80] + "\n" + code[80:] + " ")
         other.locator("#save-import").click()
         other.wait_for_function("document.querySelector('#levels-count').textContent === '2 / 3'")
-        saved = other.evaluate("localStorage.getItem('word-kanji:campaign:v1')")
+        saved = other.evaluate("localStorage.getItem('word-kanji:campaign:v2')")
         stale.locator("#entry").fill(toy(0))
         stale.locator("#submit").click()
         stale.locator("#next").wait_for(state="visible")
-        assert stale.evaluate("localStorage.getItem('word-kanji:campaign:v1')") == saved
+        assert stale.evaluate("localStorage.getItem('word-kanji:campaign:v2')") == saved
         stale.close()
         assert other.locator("#save-dialog").is_visible()
         # Invalid or incompatible codes must leave the stored progress intact.
-        invalid = [code[:-1] + ("0" if code[-1] != "0" else "1"), code.replace("HT101-1", "HT101-2")]
+        invalid = [code[:-1] + ("0" if code[-1] != "0" else "1"), code.replace("HT101-2", "HT101-3")]
         for revision, completed in [("d" * 16, 1), ("c" * 16, 4)]:
             invalid.append(other.evaluate("""async r => (await import('./save-code.js')).encodeSave({
                 'campaign-one-standard':{revision:r[0],completed:r[1]}})""", [revision, completed]))
@@ -83,13 +83,13 @@ def main():
             other.locator("#save-code").fill(bad)
             other.locator("#save-import").click()
             other.wait_for_function("!document.querySelector('#save-import').disabled")
-            assert other.evaluate("localStorage.getItem('word-kanji:campaign:v1')") == saved
+            assert other.evaluate("localStorage.getItem('word-kanji:campaign:v2')") == saved
         lower = other.evaluate("""async () => (await import('./save-code.js')).encodeSave({
             'campaign-one-standard':{revision:'cccccccccccccccc',completed:1}})""")
         other.locator("#save-code").fill(lower)
         other.locator("#save-import").click()
         other.wait_for_function("!document.querySelector('#save-import').disabled")
-        assert other.evaluate("localStorage.getItem('word-kanji:campaign:v1')") == saved
+        assert other.evaluate("localStorage.getItem('word-kanji:campaign:v2')") == saved
         other.reload()
         other.wait_for_function("document.querySelector('#levels-count').textContent === '2 / 3'")
         # A blocked storage API still permits import/export in the current session.
