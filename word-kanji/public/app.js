@@ -276,7 +276,7 @@ async function route() {
     refreshProgressUi();
     if (name === "levels") {
       fitLevelGrid();
-      levelPage = Math.floor(Math.min(current, unlockedCount() - 1) / pageSize);
+      levelPage = Math.floor((unlockedCount() - 1) / pageSize);
       drawLevels();
     } else if (name === "play") {
       if (requestedLevel !== undefined) {
