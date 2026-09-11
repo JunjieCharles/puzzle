@@ -104,7 +104,19 @@ def main():
         page.locator("#entry").fill(rows[0]["answer"][0])
         page.locator("#submit").click()
         assert page.locator("#feedback").inner_text()
+        assert page.locator('.entry[aria-invalid="true"]').count() == 2
         assert page.evaluate("localStorage.length") == 0
+        # A partly correct word is still one wrong answer: mark both cells red.
+        page.locator("#entry").fill(rows[0]["answer"][0] + rows[1]["answer"][1])
+        assert page.locator('.entry[aria-invalid="true"]').count() == 0
+        page.locator("#submit").click()
+        page.wait_for_function("document.querySelectorAll('.entry[aria-invalid=true]').length === 2")
+        colors = page.locator('.entry').evaluate_all("els => els.map(e => getComputedStyle(e).borderColor)")
+        assert colors == ['rgb(172, 100, 79)'] * 2
+        assert 'rgb(240, 222, 216)' in page.locator('#entry').evaluate('e => getComputedStyle(e).boxShadow')
+        assert page.locator('.entry.solved').count() == 0
+        page.locator("#entry-two").fill(rows[1]["answer"][0])
+        assert page.locator('.entry[aria-invalid="true"]').count() == 0
         page.locator("#entry").fill(rows[0]["answer"])
         page.locator("#submit").click()
         page.wait_for_url("**/#play-two/2")

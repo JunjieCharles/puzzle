@@ -297,7 +297,7 @@ $("puzzle-form").addEventListener("submit", async (event) => {
   const value = values.join("");
   if (!values.every(v => /^\p{Unified_Ideograph}$/u.test(v))) {
     feedback(activeMode === twoMode ? "请在两个空格各填一个汉字" : "请输入一个汉字", "error");
-    $("entry").setAttribute("aria-invalid", "true");
+    for (const input of entries()) input.setAttribute("aria-invalid", "true");
     $("entry").focus();
     return;
   }
@@ -312,7 +312,7 @@ $("puzzle-form").addEventListener("submit", async (event) => {
     const check = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
     if (check !== puzzle.check) {
       feedback("再想一想", "error");
-      $("entry").setAttribute("aria-invalid", "true");
+      for (const input of entries()) input.setAttribute("aria-invalid", "true");
       $("entry").focus();
       $("entry").select();
       return;
@@ -367,7 +367,7 @@ for (const input of [$("entry"), $("entry-two")]) {
   input.addEventListener("input", (event) => {
     if (busy) { generation++; busy = false; $("submit").disabled = false; }
     feedback();
-    input.removeAttribute("aria-invalid");
+    for (const field of entries()) field.removeAttribute("aria-invalid");
     if (!composing && !event.isComposing) limitEntry(input);
   });
   input.addEventListener("keydown", (event) => {
