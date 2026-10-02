@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const toyRoot = path.resolve(process.argv[2]);
+const revision = fs.readFileSync(path.join(toyRoot, 'endless-engine.js'), 'utf8').match(/export const REVISION = "([^"]+)"/)[1];
 const publicRoot = path.resolve(__dirname, '../public');
 const imageRoot = process.argv[3];
 if (imageRoot) {
@@ -141,8 +142,8 @@ const server = createServer((req, res) => {
       assert.equal(await page.locator('#level-title').textContent(), '第 2 关');
       assert.deepEqual(await page.locator('#board .clue').allTextContents(), clues);
       assert.equal(ranks.filter(r => r.board === board).length, 1);
-      const stored = JSON.parse(cloud.alpha[`wk1_${board}_endless-v1`]);
-      assert.deepEqual(stored, {v:1, revision:'endless-v1', next:2});
+      const stored = JSON.parse(cloud.alpha[`wk1_${board}_${revision}`]);
+      assert.deepEqual(stored, {v:1, revision, next:2});
     }
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('word-kanji:endless-one-standard:v1')).next), 99);
     assert.equal(await page.evaluate(() => localStorage.getItem('word-kanji:endless-two-standard:v1')), null);

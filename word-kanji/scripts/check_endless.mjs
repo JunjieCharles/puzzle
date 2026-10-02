@@ -1,8 +1,11 @@
 // Production-vocabulary checks print aggregates only. Never log generated records.
 import fs from "node:fs";
 import assert from "node:assert/strict";
-import { Vocabulary, EndlessSequence } from "../public/endless-engine.js";
-const data = JSON.parse(fs.readFileSync(new URL("../public/endless-lexicon.json", import.meta.url), "utf8"));
+import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
+const root = process.argv[2] ? pathToFileURL(resolve(process.argv[2]) + '/') : new URL("../public/", import.meta.url);
+const { Vocabulary, EndlessSequence } = await import(new URL("endless-engine.js", root));
+const data = JSON.parse(fs.readFileSync(new URL("endless-lexicon.json", root), "utf8"));
 const v = new Vocabulary(data), common = new Set(data.common), broad = new Set([...data.broad, ...data.common]);
 let seed = 20261002;
 const random = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);

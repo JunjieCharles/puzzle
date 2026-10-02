@@ -128,11 +128,15 @@ def inspect_file(name, payload):
             # Exact full HSK vocabulary, never a puzzle-specific candidate list.
             from generator import Lexicon
             expected = {"version": "hsk-two-words-v1", "words": sorted(w for w in Lexicon.load().records if len(w) == 2)}
-            if value != expected:
+            from scripts.vocabulary_policy import filter_words
+            filtered = dict(expected, words=filter_words(expected["words"]))
+            if value not in (expected, filtered):
                 errors.append("two-word vocabulary must equal the complete generic HSK list")
         elif path.name == "endless-lexicon.json":
             from scripts.export_endless_lexicon import payload as endless_vocabulary
-            if value != endless_vocabulary():
+            from scripts.vocabulary_policy import filter_endless
+            expected = endless_vocabulary()
+            if value not in (expected, filter_endless(expected)):
                 errors.append("endless vocabulary must equal complete generic HSK and expanded lists")
         return errors
     return []

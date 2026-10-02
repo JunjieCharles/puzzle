@@ -2,9 +2,12 @@
 import argparse
 from pathlib import Path
 import re
+import hashlib
+import json
 
 from build_site import ASSETS, PUBLIC
 from audit_public import inspect_file
+from vocabulary_policy import REVISION, encode, filter_endless, filter_words, filter_campaign
 
 TOY = PUBLIC.parent / "toy"
 
@@ -28,6 +31,23 @@ def build_toy(output):
         if source.is_symlink():
             raise ValueError("Symlink assets are not allowed")
         payloads[name] = source.read_bytes()
+    # Editorial changes are confined to this build; preserve the original web sequence.
+    vocabulary = json.loads(payloads["endless-lexicon.json"])
+    payloads["endless-lexicon.json"] = encode(filter_endless(vocabulary))
+    hints = json.loads(payloads["hsk-two-words.json"])
+    payloads["hsk-two-words.json"] = encode(dict(hints, words=filter_words(hints["words"])))
+    for name, size in (("campaign.json", 1), ("campaign-two.json", 2)):
+        payloads[name] = encode(filter_campaign(json.loads(payloads[name]), vocabulary["common"], size))
+    engine = payloads["endless-engine.js"].decode("utf-8")
+    payloads["endless-engine.js"] = replace_once(engine, r'export const REVISION = "endless-v1";',
+                                               f'export const REVISION = "{REVISION}";').encode("utf-8")
+    worker = payloads["endless-worker.js"].decode("utf-8")
+    digest = hashlib.sha256(payloads["endless-lexicon.json"]).hexdigest()
+    payloads["endless-worker.js"] = replace_once(worker, r'const VOCABULARY_SHA256 = "[a-f0-9]+";',
+                                               f'const VOCABULARY_SHA256 = "{digest}";').encode("utf-8")
+    notice = payloads["NOTICE.txt"].decode("utf-8")
+    notice = notice.replace("complete generic one- and two-character vocabulary exported for", "editorially filtered generic one- and two-character vocabulary exported for")
+    payloads["NOTICE.txt"] = (notice + "\nToy edition: editorial vocabulary exclusions; affected campaign records omitted.\n").encode("utf-8")
     app = payloads["app.js"].decode("utf-8")
     app = replace_once(app, r"// WEB-SAVE-BEGIN.*?// WEB-SAVE-END", "")
     payloads["app.js"] = app.encode("utf-8")

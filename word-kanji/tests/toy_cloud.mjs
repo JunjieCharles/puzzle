@@ -7,9 +7,10 @@ globalThis.crypto ??= webcrypto;
 const { CloudProgress, cleanRecord, scopeKey } = await import(pathToFileURL(resolve(process.argv[2], 'cloud.js')));
 const one = 'campaign-one-standard', two = 'campaign-two-standard';
 const catalog = { [one]: { revision: 'a'.repeat(16), total: 8 }, [two]: { revision: 'b'.repeat(16), total: 8 } };
+const { REVISION } = await import(pathToFileURL(resolve(process.argv[2], 'endless.js')));
 const endlessOne = 'endless-one-standard', endlessTwo = 'endless-two-standard';
-for (const mode of [endlessOne, endlessTwo]) catalog[mode] = { revision: 'endless-v1', endless: true };
-const endlessRecord = next => ({ v: 1, revision: 'endless-v1', next });
+for (const mode of [endlessOne, endlessTwo]) catalog[mode] = { revision: REVISION, endless: true };
+const endlessRecord = next => ({ v: 1, revision: REVISION, next });
 const record = (mode, count, pending) => ({ v: 1, revision: catalog[mode].revision, completed: count,
   pending: pending || Array.from({ length: Math.min(8, count + 3) - count }, (_, i) => count + i + 1) });
 function harness() {
