@@ -1,4 +1,5 @@
-import { encodeSave, decodeSave, migrateProgress, passedLevels, progressRecord } from "./save-code.js?v=progress-2";
+import { migrateProgress, passedLevels, progressRecord } from "./progress.js";
+import { platform } from "./platform.js";
 const $ = (id) => document.getElementById(id);
 const oneMode = "campaign-one-standard", twoMode = "campaign-two-standard";
 const modes = {
@@ -118,6 +119,7 @@ function drawLevels() {
 
 function readProgress(mode = activeMode) {
   const state = modes[mode];
+  if (platform) return platform.read(mode);
   const passed = new Set();
   if (!state.data) return passed;
   // Keep v1 untouched; old tabs can still advance it without erasing v2 holes.
@@ -159,6 +161,11 @@ function syncProgress() {
 
 async function saveProgress(mode = activeMode) {
   const state = modes[mode];
+  if (platform) {
+    platform.save(mode, progressRecord(state.passed, state.data.puzzles.length, state.data.revision));
+    refreshProgressUi();
+    return true;
+  }
   try {
     const write = () => {
       mergePassed(mode, readProgress(mode));
@@ -515,6 +522,9 @@ document.addEventListener("click", (event) => {
 $("help-open").addEventListener("click", () => {
   $("help-dialog").showModal();
 });
+// WEB-SAVE-BEGIN
+if (!platform) {
+const { encodeSave, decodeSave } = await import("./save-code.js?v=progress-2");
 $("save-open").addEventListener("click", () => {
   $("save-status").textContent = "";
   $("save-dialog").showModal();
@@ -567,6 +577,8 @@ $("save-import").addEventListener("click", () => saveAction(async () => {
   $("save-status").textContent = !persisted ? "已导入本次游戏，但浏览器未能保存，请保留存档码" :
     "已导入，合并已通过题目";
 }));
+}
+// WEB-SAVE-END
 let resizeFrame;
 window.addEventListener("resize", () => {
   cancelAnimationFrame(resizeFrame);
@@ -574,4 +586,24 @@ window.addEventListener("resize", () => {
 });
 window.addEventListener("pagehide", clearEntry);
 window.addEventListener("pageshow", (event) => { if (event.persisted) route(); });
+if (platform) {
+  await platform.start({
+    async catalog() {
+      await Promise.all(Object.keys(modes).map(loadCampaign));
+      return Object.fromEntries(Object.entries(modes).map(([mode, state]) =>
+        [mode, { revision: state.data.revision, total: state.data.puzzles.length }]));
+    },
+    update(records, replace = false) {
+      if (replace) {
+        clearEntry();
+        for (const state of Object.values(modes)) { state.passed.clear(); state.completed = 0; }
+      }
+      for (const [mode, record] of Object.entries(records)) {
+        if (modes[mode]?.data) mergePassed(mode, passedLevels(record, modes[mode].data.puzzles.length));
+      }
+      refreshProgressUi();
+      if (replace) navigate("home", { replace: true });
+    },
+  });
+}
 route();

@@ -6,7 +6,7 @@ import shutil
 from audit_public import inspect_file
 
 PUBLIC = Path(__file__).resolve().parents[1] / "public"
-ASSETS = ("index.html", "app.js", "style.css", "save-code.js", "campaign.json", "campaign-two.json", "hsk-two-words.json",
+ASSETS = ("index.html", "app.js", "style.css", "save-code.js", "progress.js", "platform.js", "campaign.json", "campaign-two.json", "hsk-two-words.json",
           "coin.svg", "one-standard.svg", "two-standard.svg", "NOTICE.txt")
 
 

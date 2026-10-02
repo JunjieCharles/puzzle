@@ -1,0 +1,42 @@
+.toy-dialog { width:min(520px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); padding:24px; border:1px solid #becdb7; border-radius:24px; background:#fafbf5; color:#243c34; }
+.toy-dialog::backdrop { background:#18392e66; }
+.toy-dialog p { line-height:1.6; }
+.toy-dialog button:not(.help-close) { min-height:48px; padding:10px 16px; border:1px solid #bacdb0; border-radius:12px; color:var(--green); background:#e7eedf; font-size:16px; }
+.toy-dialog button.primary { color:#fffef7; background:var(--green); }
+.toy-actions,.toy-tabs { display:flex; gap:12px; margin:20px 0; }
+.toy-actions>* { flex:1; min-width:0; }
+.toy-tabs>* { flex:1; }
+.toy-tabs button[aria-pressed="true"] { color:#fffef7; background:var(--green); }
+.toy-note { font-size:14px; color:#53685a; }
+.toy-ranks { width:100%; border-collapse:collapse; margin:12px 0 20px; font-size:16px; }
+.toy-ranks td,.toy-ranks th { padding:12px 6px; border-bottom:1px solid #dce5d4; text-align:left; overflow-wrap:anywhere; }
+.toy-ranks td:nth-child(2) { max-width:190px; }
+.toy-ranks td:last-child,.toy-ranks th:last-child { text-align:right; white-space:nowrap; }
+.utility-actions { display:grid; grid-template-columns:64px 64px; gap:8px 12px; }
+#rank-open { grid-column:1; grid-row:1; }
+#help-open { grid-column:2; grid-row:1; }
+.toy-cloud-state { grid-column:1 / -1; grid-row:2; display:flex; align-items:center; justify-content:flex-end; gap:4px; min-height:24px; color:#53685a; }
+#cloud-status { font-size:14px; white-space:nowrap; }
+.toy-cloud-state.needs-attention { color:#8a5421; }
+#cloud-retry { border:0; border-radius:6px; padding:4px; min-height:28px; background:#e7eedf; color:var(--green); font-size:12px; }
+#home,#types,#levels,#play,#complete { padding-top:112px; }
+@media(max-width:380px) { .toy-dialog { padding:16px; } .toy-actions { flex-direction:column; } }
+#rank-dialog[open] { display:flex; flex-direction:column; height:min(720px,calc(100dvh - 24px)); gap:12px; }
+#rank-dialog .help-heading,#rank-dialog .toy-tabs,#rank-dialog .rank-pages { flex-shrink:0; margin:0; }
+#rank-mine,#rank-status { margin:0; flex-shrink:0; font-size:16px; }
+#rank-status:empty { display:none; }
+#rank-list-space { flex:1; min-height:88px; }
+#rank-dialog .toy-ranks { table-layout:fixed; margin:0; }
+#rank-dialog .toy-ranks th:first-child { width:54px; }
+#rank-dialog .toy-ranks th:last-child { width:76px; }
+#rank-dialog .toy-ranks td { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rank-pages { display:flex; align-items:center; gap:8px; }
+#rank-dialog .rank-pages button { min-width:44px; min-height:44px; padding:8px; }
+#rank-page { flex:1; text-align:center; white-space:nowrap; font-size:14px; }
+#rank-dialog button:disabled { opacity:.45; }
+@media(max-height:500px) {
+  #rank-dialog[open] { padding:12px 16px; gap:6px; }
+  #rank-dialog .help-close { width:44px; height:44px; }
+  #rank-dialog .toy-tabs button { min-height:44px; padding:6px 12px; }
+  #rank-dialog .toy-ranks td,#rank-dialog .toy-ranks th { padding:8px 6px; }
+}

@@ -1,0 +1,7 @@
+  <dialog id="rank-dialog" class="toy-dialog" aria-labelledby="rank-title">
+    <form method="dialog" class="help-heading"><h2 id="rank-title">排行榜</h2><button class="help-close" aria-label="关闭排行榜">×</button></form>
+    <div class="toy-tabs" role="group" aria-label="排行榜题型"><button id="rank-one" type="button" aria-pressed="true">一字榜</button><button id="rank-two" type="button" aria-pressed="false">二字榜</button></div>
+    <p id="rank-mine"></p><p id="rank-status" role="status" aria-live="polite"></p>
+    <div id="rank-list-space"><table class="toy-ranks"><caption class="toy-note">前 100 名</caption><thead><tr><th>名次</th><th>玩家</th><th>通过数</th></tr></thead><tbody id="rank-rows"></tbody></table></div>
+    <nav class="rank-pages" aria-label="排行榜分页"><button id="rank-prev" type="button" aria-label="上一页">←</button><span id="rank-page" role="status">1 / 1</span><button id="rank-next" type="button" aria-label="下一页">→</button><button id="rank-refresh" type="button">刷新</button></nav>
+  </dialog>
