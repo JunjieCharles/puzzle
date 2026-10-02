@@ -30,6 +30,8 @@ Toy doctor 检查无 ERROR，需人工解释的 WARN：index.html 的目录规�
 
 ## 普通网站
 
+2026-10-02 网页版新增浏览器生成的无尽模式。发布白名单增加 `endless.js`、`endless-engine.js`、`endless-worker.js` 和完整通用词库 `endless-lexicon.json`；没有预生成题库或答案映射。Worker 使用相对 URL 加载，静态主机须提供 JavaScript MIME 类型及 HTTPS（localhost 可测试）。词库由 `scripts/export_endless_lexicon.py` 从完整通用源词库导出；若改变词库内容，必须同步评估生成器序列版本和 Worker 中的固定词库 SHA-256，不能直接替换已发布序列。本轮未运行线上发布。
+
 最终地址为 `/puzzle/word-kanji/`，根据 Pages 的基础路径选择产物结构：
 
 | Pages 基础路径 | 产物中的项目位置 |

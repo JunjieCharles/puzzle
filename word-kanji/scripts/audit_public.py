@@ -8,7 +8,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "word-kanji"))
-SENSITIVE_KEYS = {"answer", "answers", "edge_words", "broad_unique_answer", "source_puzzle_id", "top_candidate_contributors"}
+SENSITIVE_KEYS = {"answer", "answers", "solution", "solutions", "recent_answers", "cooling_state", "edge_words", "broad_unique_answer", "source_puzzle_id", "top_candidate_contributors"}
 
 
 def inspect_campaign(value):
@@ -130,6 +130,10 @@ def inspect_file(name, payload):
             expected = {"version": "hsk-two-words-v1", "words": sorted(w for w in Lexicon.load().records if len(w) == 2)}
             if value != expected:
                 errors.append("two-word vocabulary must equal the complete generic HSK list")
+        elif path.name == "endless-lexicon.json":
+            from scripts.export_endless_lexicon import payload as endless_vocabulary
+            if value != endless_vocabulary():
+                errors.append("endless vocabulary must equal complete generic HSK and expanded lists")
         return errors
     return []
 

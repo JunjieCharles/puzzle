@@ -1,4 +1,5 @@
 // Portable progress only: no player inputs, solutions, or identity credentials.
+import { endlessModes, validateEndless } from "./endless.js";
 const plain = (value) => value && typeof value === "object" && !Array.isArray(value);
 // Add future modes here; absence in an older code means no saved progress.
 const knownModes = ["campaign-one-standard", "campaign-two-standard"];
@@ -14,6 +15,9 @@ export function migrateProgress(record, targetRevision) {
 export function validateModes(modes) {
   if (!plain(modes) || Object.keys(modes).length > 32) throw new Error("存档格式无效");
   const result = {};
+  for (const mode of endlessModes) {
+    if (Object.hasOwn(modes, mode)) result[mode] = validateEndless(modes[mode]);
+  }
   for (const mode of knownModes) {
     if (!Object.hasOwn(modes, mode)) continue;
     const record = modes[mode];

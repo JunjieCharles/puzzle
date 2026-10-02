@@ -9,8 +9,9 @@ async function checksum(text) {
 export async function encodeSave(modes) {
   const clean = validateModes(modes);
   // Retain the legacy encoder for sequential records; current UI supplies pending.
-  const version = Object.values(clean).some(record => Object.hasOwn(record, "pending")) ? 2 : 1;
-  if (version === 2 && Object.values(clean).some(record => !Object.hasOwn(record, "pending"))) throw new Error("未通过题号缺失");
+  const campaignRecords = Object.values(clean).filter(record => !Object.hasOwn(record, "next"));
+  const version = Object.values(clean).some(record => Object.hasOwn(record, "pending") || Object.hasOwn(record, "next")) ? 2 : 1;
+  if (version === 2 && campaignRecords.some(record => !Object.hasOwn(record, "pending"))) throw new Error("未通过题号缺失");
   const nonce = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
   const payload = btoa(JSON.stringify({ v: version, nonce, modes: clean })).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
   const body = `HT101-${version}.${payload}`;
@@ -28,7 +29,7 @@ export async function decodeSave(text) {
   catch { throw new Error("存档格式无效"); }
   if (value?.v !== Number(parts[0].slice(-1)) || !/^[a-f0-9]{32}$/.test(value.nonce)) throw new Error("存档格式无效");
   const modes = validateModes(value.modes);
-  if (value.v === 1 && Object.values(modes).some(record => Object.hasOwn(record, "pending"))) throw new Error("存档格式无效");
-  if (value.v === 2 && Object.values(modes).some(record => !Object.hasOwn(record, "pending"))) throw new Error("未通过题号缺失");
+  if (value.v === 1 && Object.values(modes).some(record => Object.hasOwn(record, "pending") || Object.hasOwn(record, "next"))) throw new Error("存档格式无效");
+  if (value.v === 2 && Object.values(modes).some(record => !Object.hasOwn(record, "next") && !Object.hasOwn(record, "pending"))) throw new Error("未通过题号缺失");
   return modes;
 }

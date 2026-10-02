@@ -6,6 +6,8 @@ HSK word list: Mani / krmanik/HSK-3.0
 https://github.com/krmanik/HSK-3.0/tree/182692ce5a11bc30bdc771835d2f0f27491c25de
 Changes: normalized vocabulary; generated, selected and ordered Chinese word
 puzzles; published clues, vocabulary levels and salted validation digests.
+Endless mode: complete generic one- and two-character vocabulary exported for
+runtime puzzle generation; no pre-generated solution mappings are published.
 
 Expanded uniqueness checking: CC-CEDICT community / MDBG
 https://www.mdbg.net/chinese/dictionary?page=cc-cedict

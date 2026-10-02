@@ -27,7 +27,7 @@
       <div class="heading"><h1 id="home-title" tabindex="-1">选择模式</h1></div>
       <div class="choices">
         <a class="choice" href="#types"><span class="choice-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V3m0 1c5-4 9 4 14 0v10c-5 4-9-4-14 0"/></svg></span><span class="choice-label">闯关模式</span><svg class="choice-arrow" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></a>
-        <button class="choice" disabled><span class="choice-icon" aria-hidden="true">∞</span><span class="choice-label">无尽模式</span><span class="badge">未开放</span></button>
+        <button id="endless-start" class="choice" disabled><span class="choice-icon" aria-hidden="true">∞</span><span class="choice-label">无尽模式</span><span class="badge">未开放</span></button>
       </div>
     </section>
     <section id="types" class="view" hidden aria-labelledby="types-title">
@@ -37,6 +37,15 @@
         <a class="choice" id="start" href="#levels"><span class="choice-icon type-icon" aria-hidden="true"><img src="./one-standard.svg" alt=""></span><span class="choice-label">一字标准型<small id="saved-progress"></small></span><svg class="choice-arrow" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></a>
         <a class="choice" id="start-two" href="#levels-two"><span class="choice-icon type-icon" aria-hidden="true"><img src="./two-standard.svg" alt=""></span><span class="choice-label">二字标准型<small id="saved-progress-two"></small></span><span class="choice-arrow" aria-hidden="true">→</span></a>
       </div>
+    </section>
+    <section id="endless-types" class="view" hidden aria-labelledby="endless-types-title">
+      <a class="back" href="#home" aria-label="&#36820;&#22238;&#39318;&#39029;"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 5-7 7 7 7M5 12h14"/></svg></a>
+      <div class="heading"><span class="eyebrow">无尽模式</span><h1 id="endless-types-title" tabindex="-1">选择题型</h1></div>
+      <div class="choices">
+        <a class="choice" id="endless-start-one" href="#endless-one"><span class="choice-icon type-icon" aria-hidden="true"><img src="./one-standard.svg" alt=""></span><span class="choice-label">一字标准型<small id="endless-progress-1"></small></span><svg class="choice-arrow" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></a>
+        <a class="choice" id="endless-start-two" href="#endless-two"><span class="choice-icon type-icon" aria-hidden="true"><img src="./two-standard.svg" alt=""></span><span class="choice-label">二字标准型<small id="endless-progress-2"></small></span><span class="choice-arrow" aria-hidden="true">→</span></a>
+      </div>
+      <p id="endless-status" role="status"></p>
     </section>
     <section id="levels" class="view" hidden aria-labelledby="levels-title">
       <div class="view-top">
@@ -101,15 +110,32 @@
   </dialog>
   <dialog id="help-dialog" aria-labelledby="help-title">
     <form method="dialog" class="help-heading"><h2 id="help-title">怎么玩</h2><button class="help-close" aria-label="关闭帮助"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button></form>
-    <p>一字型填一个字；二字型从左到右填成一个二字词，可以直接输入整个词。顺着每条箭头读，都要组成词语。</p>
-    <div class="help-example" role="img" aria-label="例题：上方回、左方报、下方应、右方案，中间填答。箭头向右、向下。">
-      <span class="top">回</span><span class="down-one help-arrow">↓</span>
-      <span class="left">报</span><span class="right-one help-arrow">→</span>
-      <span class="help-answer">答</span><span class="right-two help-arrow">→</span><span class="right">案</span>
-      <span class="down-two help-arrow">↓</span><span class="bottom">应</span>
+    <p class="help-rule">顺着箭头，都要组成词语。</p>
+    <div class="help-tabs" role="tablist" aria-label="示例题型">
+      <button id="help-tab-one" type="button" role="tab" aria-selected="true" aria-controls="help-panel-one">一字型</button>
+      <button id="help-tab-two" type="button" role="tab" aria-selected="false" aria-controls="help-panel-two" tabindex="-1">二字型</button>
     </div>
-    <p class="help-words">回答 · 报答 · 答案 · 答应</p>
-    <p>上面是一字型示例。二字型还要让中间两字按顺序成词，所有箭头组词都成立。</p>
+    <section id="help-panel-one" role="tabpanel" aria-labelledby="help-tab-one">
+      <div class="help-example" role="img" aria-label="一字教学例题：中间填答，顺箭头组成回答、报答、答应、答案。">
+        <span class="top">回</span><span class="down-one help-arrow">↓</span>
+        <span class="left">报</span><span class="right-one help-arrow">→</span>
+        <span class="help-answer">答</span><span class="right-two help-arrow">→</span><span class="right">案</span>
+        <span class="down-two help-arrow">↓</span><span class="bottom">应</span>
+      </div>
+      <p class="help-caption">填一个字。</p>
+    </section>
+    <section id="help-panel-two" role="tabpanel" aria-labelledby="help-tab-two" hidden>
+      <div class="help-example help-example-two" role="img" aria-label="二字教学例题：从左到右填答案，顺箭头组成回答、报答、答复、答案、方案、案头、案例。">
+        <span class="top">报</span><span class="down-one help-arrow">↓</span>
+        <span class="left">回</span><span class="right-one help-arrow">→</span>
+        <span class="help-answer">答</span><span class="right-two help-arrow">→</span>
+        <span class="help-answer help-answer-two">案</span><span class="help-right-three help-arrow">→</span><span class="right">例</span>
+        <span class="down-two help-arrow">↓</span><span class="bottom">复</span>
+        <span class="help-top-two">方</span><span class="help-down-three help-arrow">↓</span>
+        <span class="help-down-four help-arrow">↓</span><span class="help-bottom-two">头</span>
+      </div>
+      <p class="help-caption">从左到右填两个字，连起来也是词。</p>
+    </section>
   </dialog>
 </body>
 </html>

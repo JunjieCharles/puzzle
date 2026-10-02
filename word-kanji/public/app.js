@@ -1,11 +1,27 @@
 import { migrateProgress, passedLevels, progressRecord } from "./progress.js";
 import { platform } from "./platform.js";
+import { EndlessClient, EndlessProgress, endlessModes, REVISION } from "./endless.js";
 const $ = (id) => document.getElementById(id);
 const oneMode = "campaign-one-standard", twoMode = "campaign-two-standard";
 const modes = {
   [oneMode]: { file: "campaign.json", version: "kanji-one-v1", legacyKey: "word-kanji:campaign:v1", key: "word-kanji:campaign:v2", label: "一字标准型", size: 1, completed: 0, passed: new Set(), current: 0 },
   [twoMode]: { file: "campaign-two.json", version: "kanji-two-v1", legacyKey: "word-kanji:campaign-two:v1", key: "word-kanji:campaign-two:v2", label: "二字标准型", size: 2, completed: 0, passed: new Set(), current: 0 },
 };
+const endlessClient = new EndlessClient();
+// Defer storage access until read/write, including browsers that deny the getter.
+const endlessProgress = new EndlessProgress({ getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) });
+if (!platform) for (const [i, mode] of endlessModes.entries()) modes[mode] = {
+  endless: true, size: i + 1, label: `无尽 · ${i === 0 ? "一" : "二"}字标准型`,
+  completed: 0, current: 0, passed: new Set(), data: { revision: REVISION, version: `${REVISION}-${i + 1}`, puzzles: {} },
+};
+const isEndless = () => Boolean(modes[activeMode].endless);
+const isTwo = () => modes[activeMode].size === 2;
+const currentPuzzle = () => isEndless() ? modes[activeMode].puzzle : campaign.puzzles[current];
+if (!platform) {
+  $("endless-start").disabled = false;
+  $("endless-start").querySelector(".badge").remove();
+  $("endless-start").addEventListener("click", () => navigate("endless-types"));
+}
 let activeMode = oneMode;
 let campaign, completed = 0, current = 0, generation = 0, busy = false, solved = false;
 const entries = () => modes[activeMode].size === 2 ? [$("entry"), $("entry-two")] : [$("entry")];
@@ -16,6 +32,7 @@ function nextUnpassed(after = -1) {
   return pending.find(i => i > after) ?? pending[0];
 }
 function modeRoute(target, mode = activeMode) {
+  if (modes[mode].endless && /^(levels|play|complete)(?=\/|$)/.test(target)) return `endless-${modes[mode].size === 2 ? "two" : "one"}`;
   return mode === twoMode ? target.replace(/^(levels|play|complete)(?=\/|$)/, "$1-two") : target;
 }
 function activate(mode) {
@@ -28,6 +45,7 @@ function activate(mode) {
 let composing = false, levelPage = 0;
 let pageSize = 60;
 let advanceTimer, departureTimer;
+const ADVANCE_MS = 900, FADE_MS = 200;
 
 function navigationPath() {
   const currentRoute = location.hash.slice(1) || "home";
@@ -56,17 +74,32 @@ function navigate(target, { replace = false, back = false, mode = activeMode } =
 }
 
 function scheduleAdvance() {
+  // One shared progress animation for every mode; a fresh fill restarts on every pass.
+  const indicator = $("next");
+  indicator.style.setProperty("--advance-duration", `${ADVANCE_MS}ms`);
+  indicator.replaceChildren(document.createElement("span"));
+  indicator.hidden = false;
   const request = generation;
   const from = location.hash;
-  const next = nextUnpassed(current);
+  const next = isEndless() ? current + 1 : nextUnpassed(current);
   const target = next === undefined ? "complete" : `play/${next + 1}`;
   const active = () => request === generation && location.hash === from && solved;
-  departureTimer = setTimeout(() => {
-    if (active()) $("puzzle-form").classList.add("departing");
-  }, 700);
-  advanceTimer = setTimeout(() => {
-    if (active()) navigate(target, { replace: true });
-  }, 900);
+  const mode = activeMode;
+  const preparedLevel = modes[mode].completed + 1;
+  // Prepare only the next public puzzle while the success animation is visible.
+  // A slow Worker extends the completed state, never an empty/flickering board.
+  const ready = isEndless() ? endlessClient.get(modes[mode].size, preparedLevel)
+    .then(puzzle => {
+      if (active()) modes[mode].prepared = { level: preparedLevel, puzzle };
+    }, () => { /* Normal navigation retains the loading-error/retry path. */ }) : Promise.resolve();
+  departureTimer = setTimeout(async () => {
+    await ready;
+    if (!active()) return;
+    $("puzzle-form").classList.add("departing");
+    advanceTimer = setTimeout(() => {
+      if (active()) navigate(target, { replace: true });
+    }, FADE_MS);
+  }, ADVANCE_MS - FADE_MS);
 }
 
 function fitLevelGrid() {
@@ -119,6 +152,11 @@ function drawLevels() {
 
 function readProgress(mode = activeMode) {
   const state = modes[mode];
+  if (state.endless) {
+    try { state.completed = endlessProgress.read(mode).next - 1; state.progressError = null; }
+    catch (error) { state.progressError = error; }
+    return state.passed;
+  }
   if (platform) return platform.read(mode);
   const passed = new Set();
   if (!state.data) return passed;
@@ -138,6 +176,7 @@ function readProgress(mode = activeMode) {
 
 function mergePassed(mode, passed) {
   const state = modes[mode];
+  if (state.endless) return;
   for (const n of passed) state.passed.add(n);
   state.completed = state.passed.size;
   if (mode === activeMode) completed = state.completed;
@@ -145,7 +184,8 @@ function mergePassed(mode, passed) {
 
 function refreshProgressUi() {
   for (const [mode, state] of Object.entries(modes)) {
-    if (state.data) $(mode === oneMode ? "saved-progress" : "saved-progress-two").textContent = `${state.completed} / ${state.data.puzzles.length}`;
+    if (state.data && !state.endless) $(mode === oneMode ? "saved-progress" : "saved-progress-two").textContent = `${state.completed} / ${state.data.puzzles.length}`;
+    if (state.endless) $(`endless-progress-${state.size}`).textContent = `第 ${state.completed + 1} 关`;
   }
   $("progress").value = completed;
   if (campaign && !$("levels").hidden) drawLevels();
@@ -161,6 +201,14 @@ function syncProgress() {
 
 async function saveProgress(mode = activeMode) {
   const state = modes[mode];
+  if (state.endless) {
+    const saved = await endlessProgress.merge(mode, { revision: REVISION, next: state.completed + 1 });
+    state.completed = endlessProgress.read(mode).next - 1;
+    state.unsaved = !saved;
+    $("save-warning").hidden = !Object.values(modes).some(s => s.unsaved);
+    if (mode === activeMode) completed = state.completed;
+    refreshProgressUi(); return saved;
+  }
   if (platform) {
     platform.save(mode, progressRecord(state.passed, state.data.puzzles.length, state.data.revision));
     refreshProgressUi();
@@ -209,8 +257,10 @@ function feedback(text = "", state = "") {
 }
 
 function clearEntry() {
+  endlessClient.cancel();
   clearTimeout(advanceTimer);
   clearTimeout(departureTimer);
+  $("next").hidden = true;
   $("puzzle-form").classList.remove("departing", "arriving", "reviewing");
   generation++;
   $("reveal").hidden = true;
@@ -230,8 +280,8 @@ function clearEntry() {
 
 function draw() {
   clearEntry();
-  const puzzle = campaign.puzzles[current];
-  const two = activeMode === twoMode;
+  const puzzle = currentPuzzle();
+  const two = isTwo();
   $("board").classList.toggle("two-board", two);
   $("board").setAttribute("aria-label", `${modes[activeMode].label}题目`);
   for (const element of document.querySelectorAll(".two-cell")) element.hidden = !two;
@@ -244,8 +294,10 @@ function draw() {
   $("entry-two").disabled = !two;
   $("entry-two").readOnly = false;
   $("level-title").textContent = `第 ${current + 1} 关`;
-  $("level-count").textContent = `${current + 1} / ${campaign.puzzles.length}`;
-  $("progress").max = campaign.puzzles.length;
+  $("level-count").textContent = isEndless() ? `已通过 ${completed} 关` : `${current + 1} / ${campaign.puzzles.length}`;
+  $("progress").hidden = isEndless();
+  document.querySelector(".level-nav").hidden = isEndless();
+  $("progress").max = isEndless() ? 1 : campaign.puzzles.length;
   $("progress").value = completed;
   $("entry").disabled = false;
   $("submit").hidden = false;
@@ -253,8 +305,8 @@ function draw() {
   $("next").hidden = true;
   $("retry").hidden = true;
   $("previous").disabled = current === 0;
-  $("reveal").hidden = !isPassed(current);
-  $("review-next").hidden = false;
+  $("reveal").hidden = isEndless() || !isPassed(current);
+  $("review-next").hidden = isEndless();
   $("review-next").disabled = current + 1 >= unlockedCount();
   $("puzzle-form").classList.add("arriving");
   $("entry").focus({ preventScroll: true });
@@ -262,14 +314,63 @@ function draw() {
 
 async function route() {
   clearEntry();
+  for (const input of [$("entry"), $("entry-two")]) input.disabled = true;
+  $("submit").disabled = true;
   const [requestedView, requestedLevel] = location.hash.slice(1).split("/");
   let name = requestedView || "home";
+  $("play").classList.toggle("endless-play", !platform && ["endless-one", "endless-two"].includes(name));
+  if (!platform && ["endless-types", "endless-one", "endless-two"].includes(name)) {
+    const selection = name === "endless-types";
+    if (!selection) activate(endlessModes[name === "endless-two" ? 1 : 0]);
+    for (const section of document.querySelectorAll(".view")) section.hidden = section.id !== (selection ? "endless-types" : "play");
+    const request = generation;
+    try {
+      // Only the next unfinished level is addressable; numeric suffixes cannot skip.
+      if (!selection && requestedLevel !== undefined) { navigate(name, { replace: true }); return; }
+      syncProgress();
+      if (selection) {
+        $("endless-status").textContent = endlessModes.some(mode => modes[mode].progressError) ? "部分无尽存档无效，请保留原存档并检查版本" : "";
+        $("endless-types-title").focus({ preventScroll: true }); return;
+      }
+      if (modes[activeMode].progressError) throw modes[activeMode].progressError;
+      current = completed;
+      for (const label of document.querySelectorAll(".mode-label")) label.textContent = modes[activeMode].label;
+      const back = document.querySelector("#play .back"); back.href = "#endless-types"; back.setAttribute("aria-label", "返回题型");
+      const state = modes[activeMode];
+      const prepared = state.prepared;
+      state.prepared = null;
+      if (prepared?.level === current + 1) {
+        state.puzzle = prepared.puzzle;
+        draw();
+        return;
+      }
+      $("level-title").textContent = `第 ${current + 1} 关`;
+      $("level-count").textContent = "准备题目…";
+      $("progress").hidden = true; document.querySelector(".level-nav").hidden = true;
+      $("submit").hidden = true; $("retry").hidden = true; $("next").hidden = true;
+      for (const input of [$("entry"), $("entry-two")]) input.disabled = true;
+      for (const id of ["top", "bottom", "left", "right", "top-two", "bottom-two"]) $(id).textContent = "";
+      const mode = activeMode;
+      const puzzle = await endlessClient.get(modes[mode].size, current + 1, (done, target) => {
+        if (generation === request) $("level-count").textContent = `恢复进度 ${Math.floor(done / target * 100)}%`;
+      });
+      if (generation !== request) return;
+      modes[mode].puzzle = puzzle;
+      draw();
+    } catch (error) {
+      if (generation !== request) return;
+      if (selection) $("endless-status").textContent = error.message;
+      else { $("level-count").textContent = ""; feedback(error.message, "error"); $("retry").hidden = false; }
+    }
+    return;
+  }
+  $("progress").hidden = false; document.querySelector(".level-nav").hidden = false;
   if (["levels", "play", "complete", "levels-two", "play-two", "complete-two"].includes(name)) {
     activate(name.endsWith("-two") ? twoMode : oneMode);
     name = name.replace(/-two$/, "");
   }
   for (const label of document.querySelectorAll(".mode-label")) label.textContent = modes[activeMode].label;
-  for (const link of document.querySelectorAll('#play .back, #complete .back')) link.href = `#${modeRoute("levels")}`;
+  for (const link of document.querySelectorAll('#play .back, #complete .back')) { link.href = `#${modeRoute("levels")}`; link.setAttribute("aria-label", "返回选关"); }
   if (!["home", "types", "levels", "play", "complete"].includes(name)) name = "home";
   for (const section of document.querySelectorAll(".view")) section.hidden = section.id !== name;
   $(name).querySelector("h1")?.focus({ preventScroll: true });
@@ -322,7 +423,7 @@ $("puzzle-form").addEventListener("submit", async (event) => {
   const values = entries().map(input => input.value.trim().normalize("NFC"));
   const value = values.join("");
   if (!values.every(v => /^\p{Unified_Ideograph}$/u.test(v))) {
-    feedback(activeMode === twoMode ? "请在两个空格各填一个汉字" : "请输入一个汉字", "error");
+    feedback(isTwo() ? "请在两个空格各填一个汉字" : "请输入一个汉字", "error");
     for (const input of entries()) input.setAttribute("aria-invalid", "true");
     $("entry").focus();
     return;
@@ -330,7 +431,7 @@ $("puzzle-form").addEventListener("submit", async (event) => {
   busy = true;
   $("submit").disabled = true;
   const request = generation;
-  const puzzle = campaign.puzzles[current];
+  const puzzle = currentPuzzle();
   try {
     const bytes = new TextEncoder().encode(`${campaign.version}:${puzzle.id}:${puzzle.salt}:${value}`);
     const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -351,12 +452,12 @@ $("puzzle-form").addEventListener("submit", async (event) => {
       input.removeAttribute("aria-invalid");
     }
     feedback("过关！", "success");
-    mergePassed(activeMode, [current + 1]);
+    if (isEndless()) modes[activeMode].completed = Math.max(modes[activeMode].completed, current + 1);
+    else mergePassed(activeMode, [current + 1]);
     await saveProgress();
     if (request !== generation) return;
     $("progress").value = completed;
     $("submit").hidden = true;
-    $("next").hidden = false;
     scheduleAdvance();
   } catch {
     if (request === generation) feedback("验证失败，请重试", "error");
@@ -367,7 +468,7 @@ $("puzzle-form").addEventListener("submit", async (event) => {
 
 function limitEntry(input) {
   const characters = Array.from(input.value.trim().normalize("NFC"));
-  if (activeMode === twoMode && characters.length >= 2) {
+  if (isTwo() && characters.length >= 2) {
     // A committed word or pasted phrase fills the whole answer from left to right.
     entries().forEach((field, index) => {
       field.value = characters[index];
@@ -378,7 +479,7 @@ function limitEntry(input) {
   }
 }
 function backspaceToFirst(input, event) {
-  if (activeMode !== twoMode || input !== $("entry-two") || input.value !== "" ||
+  if (!isTwo() || input !== $("entry-two") || input.value !== "" ||
       input.disabled || input.readOnly || solved || composing || event.isComposing || event.keyCode === 229 ||
       $("entry").disabled || $("entry").readOnly) return;
   event.preventDefault();
@@ -399,7 +500,7 @@ for (const input of [$("entry"), $("entry-two")]) {
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && (event.isComposing || event.keyCode === 229)) event.preventDefault();
     if (event.key === "Backspace") backspaceToFirst(input, event);
-    if (activeMode === twoMode && !composing && !event.isComposing && event.keyCode !== 229 &&
+    if (isTwo() && !composing && !event.isComposing && event.keyCode !== 229 &&
         !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey &&
         !input.disabled && !input.readOnly && !solved) {
       const target = event.key === "ArrowRight" && input === $("entry") ? $("entry-two") :
@@ -415,7 +516,7 @@ for (const input of [$("entry"), $("entry-two")]) {
     if (event.inputType === "deleteContentBackward") backspaceToFirst(input, event);
   });
 }
-$("previous").addEventListener("click", () => { if (current > 0) navigate(`play/${current}`, { replace: true }); });
+$("previous").addEventListener("click", () => { if (!isEndless() && current > 0) navigate(`play/${current}`, { replace: true }); });
 $("hide-answer").addEventListener("click", () => {
   if ($("hide-answer").hidden) return;
   clearEntry();
@@ -456,7 +557,7 @@ async function* revealCandidates(mode) {
   }
 }
 $("reveal").addEventListener("click", async () => {
-  if (!campaign || !isPassed(current) || busy || solved) return;
+  if (!campaign || isEndless() || !isPassed(current) || busy || solved) return;
   const request = generation;
   const puzzle = campaign.puzzles[current];
   busy = true;
@@ -519,7 +620,26 @@ document.addEventListener("click", (event) => {
   event.preventDefault();
   navigate(link.hash.slice(1), { back: link.classList.contains("back"), mode: link.id === "start" ? oneMode : activeMode });
 });
+function selectHelp(size, focus = false) {
+  for (const [i, name] of ["one", "two"].entries()) {
+    const selected = size === i + 1, tab = $(`help-tab-${name}`);
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    $(`help-panel-${name}`).hidden = !selected;
+    if (selected && focus) tab.focus();
+  }
+}
+for (const [i, name] of ["one", "two"].entries()) {
+  const tab = $(`help-tab-${name}`);
+  tab.addEventListener("click", () => selectHelp(i + 1));
+  tab.addEventListener("keydown", event => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    selectHelp(event.key === "Home" ? 1 : event.key === "End" ? 2 : 2 - i, true);
+  });
+}
 $("help-open").addEventListener("click", () => {
+  selectHelp(modes[activeMode].size);
   $("help-dialog").showModal();
 });
 // WEB-SAVE-BEGIN
@@ -542,6 +662,11 @@ async function saveAction(action) {
 $("save-export").addEventListener("click", () => saveAction(async () => {
   const progress = {};
   for (const [mode, state] of Object.entries(modes)) {
+    if (state.endless) {
+      if (state.progressError) throw state.progressError;
+      if (state.completed > 0) progress[mode] = endlessProgress.read(mode);
+      continue;
+    }
     if (mode === oneMode || state.completed > 0) progress[mode] = progressRecord(state.passed, state.data.puzzles.length, state.data.revision);
   }
   const code = await encodeSave(progress);
@@ -559,6 +684,10 @@ $("save-import").addEventListener("click", () => saveAction(async () => {
   const updates = [];
   for (const [mode, state] of Object.entries(modes)) {
     if (!incoming[mode]) continue;
+    if (state.endless) {
+      if (state.progressError) throw state.progressError;
+      updates.push([mode, incoming[mode]]); continue;
+    }
     const record = mode === oneMode ? migrateProgress(incoming[mode], state.data.revision) : incoming[mode];
     if (record.revision !== state.data.revision) throw new Error("存档题集与当前版本不同");
     updates.push([mode, passedLevels(record, state.data.puzzles.length)]);
@@ -566,14 +695,17 @@ $("save-import").addEventListener("click", () => saveAction(async () => {
   if (!updates.length) throw new Error("存档中没有支持的模式进度");
   // Validate every supported record before changing either mode.
   clearEntry();
-  for (const [mode, passed] of updates) mergePassed(mode, passed);
+  for (const [mode, passed] of updates) {
+    if (modes[mode].endless) modes[mode].completed = Math.max(modes[mode].completed, passed.next - 1);
+    else mergePassed(mode, passed);
+  }
   completed = modes[activeMode].completed;
   let persisted = true;
   for (const [mode] of updates) if (!await saveProgress(mode)) persisted = false;
   const destination = incoming[activeMode] ? activeMode : updates[0][0];
   activate(destination);
-  current = nextUnpassed() ?? campaign.puzzles.length - 1;
-  await navigate("levels", { back: navigationPath().includes(modeRoute("levels")) });
+  current = isEndless() ? completed : nextUnpassed() ?? campaign.puzzles.length - 1;
+  await navigate(isEndless() ? "play" : "levels", { back: navigationPath().includes(modeRoute("levels")) });
   $("save-status").textContent = !persisted ? "已导入本次游戏，但浏览器未能保存，请保留存档码" :
     "已导入，合并已通过题目";
 }));

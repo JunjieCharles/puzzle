@@ -7,7 +7,8 @@ from audit_public import inspect_file
 
 PUBLIC = Path(__file__).resolve().parents[1] / "public"
 ASSETS = ("index.html", "app.js", "style.css", "save-code.js", "progress.js", "platform.js", "campaign.json", "campaign-two.json", "hsk-two-words.json",
-          "coin.svg", "one-standard.svg", "two-standard.svg", "NOTICE.txt")
+          "coin.svg", "one-standard.svg", "two-standard.svg", "NOTICE.txt",
+          "endless.js", "endless-engine.js", "endless-worker.js", "endless-lexicon.json")
 
 
 def build_site(output, base_path="", public=PUBLIC):
