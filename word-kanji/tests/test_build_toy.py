@@ -21,6 +21,11 @@ class ToyBuildTests(unittest.TestCase):
             self.assertNotIn("encodeSave", app)
             self.assertNotIn("decodeSave", app)
             self.assertIn('id="rank-two"', html)
+            for name in ("rank-endless-one", "rank-endless-two"):
+                self.assertIn(f'id="{name}"', html)
+            self.assertNotIn('!platform && ["endless', app)
+            for name in ("endless.js", "endless-engine.js", "endless-worker.js", "endless-lexicon.json"):
+                self.assertEqual((target / name).read_bytes(), (ROOT / "public" / name).read_bytes())
             self.assertIn("toy-sdk.js", html)
             for name in ("campaign.json", "campaign-two.json", "hsk-two-words.json"):
                 self.assertEqual((target / name).read_bytes(), (ROOT / "public" / name).read_bytes())

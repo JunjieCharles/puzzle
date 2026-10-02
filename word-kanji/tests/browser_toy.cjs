@@ -1,5 +1,5 @@
 // Toy and ordinary-site integration, using a mocked SDK and synthetic puzzle data.
-const { chromium } = require('playwright');
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const { createServer } = require('node:http');
 const fs = require('node:fs');
@@ -17,6 +17,15 @@ if (imageRoot) {
 }
 const one = 'campaign-one-standard', two = 'campaign-two-standard';
 const symbol = i => String.fromCodePoint(0x3400 + i);
+const words = new Set();
+for (const [size, offset] of [[1, 0x3400], [2, 0x4400]]) for (let n = 0; n < 105; n++) {
+  const c = Array.from({length:8}, (_, i) => String.fromCodePoint(offset + n * 8 + i));
+  for (const word of size === 1 ? [c[0],c[2]+c[0],c[3]+c[0],c[0]+c[4],c[0]+c[5]] :
+    [c[0]+c[1],c[2]+c[0],c[3]+c[1],c[0]+c[4],c[1]+c[5],c[6]+c[0],c[1]+c[7]]) words.add(word);
+}
+const vocabulary = JSON.stringify({version:'endless-lexicon-v1', common:[...words].sort(), broad:[...words].sort()});
+const worker = fs.readFileSync(path.join(toyRoot, 'endless-worker.js'), 'utf8').replace(
+  /const VOCABULARY_SHA256 = "[a-f0-9]+"/, `const VOCABULARY_SHA256 = "${createHash('sha256').update(vocabulary).digest('hex')}"`);
 function campaign(size) {
   const version = size === 1 ? 'kanji-one-v1' : 'kanji-two-v1';
   return { version, revision: (size === 1 ? 'a' : 'b').repeat(16), puzzles: Array.from({ length: 5 }, (_, i) => {
@@ -50,6 +59,8 @@ const server = createServer((req, res) => {
     context.on('page', p => { p.on('pageerror', e => errors.push(e.message)); p.on('response', r => { if (r.status() >= 400) badRequests.push(r.url()); }); });
     await context.route('**/campaign.json', route => route.fulfill({ json: campaign(1) }));
     await context.route('**/campaign-two.json', route => route.fulfill({ json: campaign(2) }));
+    await context.route('**/endless-lexicon.json', route => route.fulfill({contentType:'application/json', body:vocabulary}));
+    await context.route('**/endless-worker.js', route => route.fulfill({contentType:'text/javascript', body:worker}));
     let account = 'alpha', clock = 0;
     const cloud = { alpha: {wk_scope_v1:'1'.repeat(32)}, beta: {wk_scope_v1:'2'.repeat(32)} }, scores = { alpha: {}, beta: {} }, ranks = [];
     await context.exposeBinding('toyTestCall', async (_, method, arg) => {
@@ -73,6 +84,7 @@ const server = createServer((req, res) => {
     // Deliberately seed an ordinary-site save; Toy must not import it.
     await page.goto(origin + '/puzzle/word-kanji/');
     await page.evaluate(() => localStorage.setItem('word-kanji:campaign:v2', JSON.stringify({ revision: 'a'.repeat(16), completed: 4, pending: [5] })));
+    await page.evaluate(() => localStorage.setItem('word-kanji:endless-one-standard:v1', JSON.stringify({revision:'endless-v1', next:99})));
     await page.goto(origin + '/toy/check/index.html');
     await page.locator('#cloud-status').waitFor();
     assert.equal(await page.locator('#save-dialog, #save-open').count(), 0);
@@ -105,10 +117,49 @@ const server = createServer((req, res) => {
     await page.reload();
     await page.waitForFunction(() => document.querySelector('#cloud-status').dataset.message === '已自动保存');
     assert.ok((await page.locator('#saved-progress').textContent()).includes('1'));
+    for (const [size, mode, board] of [[1, 'one', 3], [2, 'two', 4]]) {
+      await page.goto(origin + '/toy/check/index.html#endless-' + mode + '/999');
+      await page.locator('#entry:not([disabled])').waitFor();
+      assert.equal(await page.locator('#level-title').textContent(), '第 1 关');
+      assert.ok(page.url().endsWith('#endless-' + mode), 'cannot skip endless levels');
+      assert.equal(await page.locator('.level-nav').isVisible(), false);
+      const value = await page.evaluate(async size => {
+        const {Vocabulary, EndlessSequence} = await import('./endless-engine.js');
+        return new EndlessSequence(new Vocabulary(await (await fetch('./endless-lexicon.json')).json()), size).next().solution;
+      }, size);
+      await page.locator('#entry').fill(value); await page.locator('#submit').click();
+      const fill = () => page.locator('#next span').evaluate(el => Number(getComputedStyle(el, '::after').transform.split(',')[0].slice(7)));
+      await page.waitForTimeout(100); const early = await fill();
+      await page.waitForTimeout(300); assert.ok(await fill() > early, 'shared success bar animates');
+      await page.waitForFunction(() => document.querySelector('#level-title').textContent === '第 2 关' && !document.querySelector('#entry').disabled);
+      assert.equal(scores.alpha[board].score, 1);
+      const clues = await page.locator('#board .clue').allTextContents();
+      await page.reload();
+      await page.waitForFunction(() => document.querySelector('#cloud-status').dataset.message === '已自动保存');
+      await page.goto(origin + '/toy/check/index.html#endless-' + mode);
+      await page.locator('#entry:not([disabled])').waitFor();
+      assert.equal(await page.locator('#level-title').textContent(), '第 2 关');
+      assert.deepEqual(await page.locator('#board .clue').allTextContents(), clues);
+      assert.equal(ranks.filter(r => r.board === board).length, 1);
+      const stored = JSON.parse(cloud.alpha[`wk1_${board}_endless-v1`]);
+      assert.deepEqual(stored, {v:1, revision:'endless-v1', next:2});
+    }
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('word-kanji:endless-one-standard:v1')).next), 99);
+    assert.equal(await page.evaluate(() => localStorage.getItem('word-kanji:endless-two-standard:v1')), null);
     await page.locator('#rank-open').click();
     await page.waitForFunction(() => document.querySelector('#rank-mine').textContent.includes('第 1 名'));
     await page.locator('#rank-two').click();
     await page.waitForFunction(() => document.querySelector('#rank-two').getAttribute('aria-pressed') === 'true' && document.querySelector('#rank-rows').children.length === 1);
+    for (const id of ['rank-endless-one', 'rank-endless-two']) {
+      await page.locator('#' + id).click();
+      await page.waitForFunction(id => document.getElementById(id).getAttribute('aria-pressed') === 'true' && document.querySelector('#rank-mine').textContent.includes('已通过 1 题'), id);
+    }
+    for (const viewport of [{width:320,height:568}, {width:844,height:390}, {width:1280,height:900}]) {
+      await page.setViewportSize(viewport);
+      assert.ok(await page.locator('#rank-dialog').evaluate(el => el.scrollHeight <= el.clientHeight + 1));
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    }
+    await page.setViewportSize({width:390,height:844});
     if (imageRoot) await page.screenshot({ path: path.join(imageRoot, 'toy-ranks.png') });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.keyboard.press('Escape');
@@ -118,6 +169,8 @@ const server = createServer((req, res) => {
     assert.deepEqual(cloud.beta, {wk_scope_v1:'2'.repeat(32)});
     await page.waitForFunction(() => document.querySelector('#cloud-status').dataset.message === '已自动保存');
     assert.equal(await page.locator('#saved-progress').textContent(), '0 / 5');
+    assert.equal(await page.locator('#endless-progress-1').textContent(), '第 1 关');
+    assert.equal(await page.locator('#endless-progress-2').textContent(), '第 1 关');
     await page.keyboard.press('Escape');
     await page.goto(origin + '/toy/check/index.html#play/1');
     await page.locator('#entry:not([disabled])').waitFor();

@@ -10,14 +10,14 @@ const modes = {
 const endlessClient = new EndlessClient();
 // Defer storage access until read/write, including browsers that deny the getter.
 const endlessProgress = new EndlessProgress({ getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) });
-if (!platform) for (const [i, mode] of endlessModes.entries()) modes[mode] = {
+for (const [i, mode] of endlessModes.entries()) modes[mode] = {
   endless: true, size: i + 1, label: `无尽 · ${i === 0 ? "一" : "二"}字标准型`,
   completed: 0, current: 0, passed: new Set(), data: { revision: REVISION, version: `${REVISION}-${i + 1}`, puzzles: {} },
 };
 const isEndless = () => Boolean(modes[activeMode].endless);
 const isTwo = () => modes[activeMode].size === 2;
 const currentPuzzle = () => isEndless() ? modes[activeMode].puzzle : campaign.puzzles[current];
-if (!platform) {
+{
   $("endless-start").disabled = false;
   $("endless-start").querySelector(".badge").remove();
   $("endless-start").addEventListener("click", () => navigate("endless-types"));
@@ -153,7 +153,10 @@ function drawLevels() {
 function readProgress(mode = activeMode) {
   const state = modes[mode];
   if (state.endless) {
-    try { state.completed = endlessProgress.read(mode).next - 1; state.progressError = null; }
+    try {
+      state.completed = platform ? Math.max(state.completed, (platform.readEndless(mode)?.next || 1) - 1) : endlessProgress.read(mode).next - 1;
+      state.progressError = null;
+    }
     catch (error) { state.progressError = error; }
     return state.passed;
   }
@@ -201,6 +204,12 @@ function syncProgress() {
 
 async function saveProgress(mode = activeMode) {
   const state = modes[mode];
+  if (platform) {
+    platform.save(mode, state.endless ? { revision: REVISION, next: state.completed + 1 } :
+      progressRecord(state.passed, state.data.puzzles.length, state.data.revision));
+    if (mode === activeMode) completed = state.completed;
+    refreshProgressUi(); return true;
+  }
   if (state.endless) {
     const saved = await endlessProgress.merge(mode, { revision: REVISION, next: state.completed + 1 });
     state.completed = endlessProgress.read(mode).next - 1;
@@ -208,11 +217,6 @@ async function saveProgress(mode = activeMode) {
     $("save-warning").hidden = !Object.values(modes).some(s => s.unsaved);
     if (mode === activeMode) completed = state.completed;
     refreshProgressUi(); return saved;
-  }
-  if (platform) {
-    platform.save(mode, progressRecord(state.passed, state.data.puzzles.length, state.data.revision));
-    refreshProgressUi();
-    return true;
   }
   try {
     const write = () => {
@@ -318,8 +322,8 @@ async function route() {
   $("submit").disabled = true;
   const [requestedView, requestedLevel] = location.hash.slice(1).split("/");
   let name = requestedView || "home";
-  $("play").classList.toggle("endless-play", !platform && ["endless-one", "endless-two"].includes(name));
-  if (!platform && ["endless-types", "endless-one", "endless-two"].includes(name)) {
+  $("play").classList.toggle("endless-play", ["endless-one", "endless-two"].includes(name));
+  if (["endless-types", "endless-one", "endless-two"].includes(name)) {
     const selection = name === "endless-types";
     if (!selection) activate(endlessModes[name === "endless-two" ? 1 : 0]);
     for (const section of document.querySelectorAll(".view")) section.hidden = section.id !== (selection ? "endless-types" : "play");
@@ -723,16 +727,21 @@ if (platform) {
     async catalog() {
       await Promise.all(Object.keys(modes).map(loadCampaign));
       return Object.fromEntries(Object.entries(modes).map(([mode, state]) =>
-        [mode, { revision: state.data.revision, total: state.data.puzzles.length }]));
+        [mode, state.endless ? { revision: REVISION, endless: true } : { revision: state.data.revision, total: state.data.puzzles.length }]));
     },
     update(records, replace = false) {
       if (replace) {
         clearEntry();
-        for (const state of Object.values(modes)) { state.passed.clear(); state.completed = 0; }
+        for (const state of Object.values(modes)) {
+          state.passed.clear(); state.completed = 0;
+          delete state.prepared; delete state.puzzle; delete state.progressError;
+        }
       }
       for (const [mode, record] of Object.entries(records)) {
-        if (modes[mode]?.data) mergePassed(mode, passedLevels(record, modes[mode].data.puzzles.length));
+        if (modes[mode]?.endless) modes[mode].completed = Math.max(modes[mode].completed, record.next - 1);
+        else if (modes[mode]?.data) mergePassed(mode, passedLevels(record, modes[mode].data.puzzles.length));
       }
+      completed = modes[activeMode].completed;
       refreshProgressUi();
       if (replace) navigate("home", { replace: true });
     },

@@ -4,6 +4,7 @@
 .toy-dialog button:not(.help-close) { min-height:48px; padding:10px 16px; border:1px solid #bacdb0; border-radius:12px; color:var(--green); background:#e7eedf; font-size:16px; }
 .toy-dialog button.primary { color:#fffef7; background:var(--green); }
 .toy-actions,.toy-tabs { display:flex; gap:12px; margin:20px 0; }
+.toy-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
 .toy-actions>* { flex:1; min-width:0; }
 .toy-tabs>* { flex:1; }
 .toy-tabs button[aria-pressed="true"] { color:#fffef7; background:var(--green); }
@@ -19,7 +20,7 @@
 #cloud-status { font-size:14px; white-space:nowrap; }
 .toy-cloud-state.needs-attention { color:#8a5421; }
 #cloud-retry { border:0; border-radius:6px; padding:4px; min-height:28px; background:#e7eedf; color:var(--green); font-size:12px; }
-#home,#types,#levels,#play,#complete { padding-top:112px; }
+#home,#types,#endless-types,#levels,#play,#complete { padding-top:112px; }
 @media(max-width:380px) { .toy-dialog { padding:16px; } .toy-actions { flex-direction:column; } }
 #rank-dialog[open] { display:flex; flex-direction:column; height:min(720px,calc(100dvh - 24px)); gap:12px; }
 #rank-dialog .help-heading,#rank-dialog .toy-tabs,#rank-dialog .rank-pages { flex-shrink:0; margin:0; }
@@ -35,6 +36,8 @@
 #rank-page { flex:1; text-align:center; white-space:nowrap; font-size:14px; }
 #rank-dialog button:disabled { opacity:.45; }
 @media(max-height:500px) {
+  .toy-dialog { width:min(720px,calc(100vw - 24px)); }
+  .toy-tabs { grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
   #rank-dialog[open] { padding:12px 16px; gap:6px; }
   #rank-dialog .help-close { width:44px; height:44px; }
   #rank-dialog .toy-tabs button { min-height:44px; padding:6px 12px; }

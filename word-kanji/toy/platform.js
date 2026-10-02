@@ -1,6 +1,7 @@
-import { CloudProgress, boards } from "./cloud.js";
+import { CloudProgress } from "./cloud.js";
 
 const $ = id => document.getElementById(id);
+const rankButtons = ["rank-one", "rank-two", "rank-endless-one", "rank-endless-two"];
 let cloud, hooks, activeBoard = 1, rankRequest = 0, connecting = false, restore;
 const rankCache = new Map();
 let rankPending, rankRetryAt = 0, rankFailures = 0;
@@ -70,8 +71,7 @@ function showRanks(data) {
 }
 async function loadRanks(refresh = false) {
   const board = activeBoard, request = ++rankRequest;
-  $("rank-one").setAttribute("aria-pressed", String(board === 1));
-  $("rank-two").setAttribute("aria-pressed", String(board === 2));
+  rankButtons.forEach((id, index) => $(id).setAttribute("aria-pressed", String(board === index + 1)));
   $("rank-rows").replaceChildren(); $("rank-mine").textContent = "";
   rankData = undefined;
   $("rank-prev").disabled = $("rank-next").disabled = true;
@@ -115,12 +115,14 @@ function openRanks() {
 
 export const platform = {
   read(mode) { return cloud?.read(mode) || new Set(); },
+  readEndless(mode) { return cloud?.readEndless(mode); },
   save(mode, record) { cloud?.save(mode, record); },
   async start(bridge) {
     hooks = bridge;
     $("rank-open").addEventListener("click", openRanks);
-    $("rank-one").addEventListener("click", () => { activeBoard = 1; rankPage = 0; void loadRanks(); });
-    $("rank-two").addEventListener("click", () => { activeBoard = 2; rankPage = 0; void loadRanks(); });
+    rankButtons.forEach((id, index) => $(id).addEventListener("click", () => {
+      activeBoard = index + 1; rankPage = 0; void loadRanks();
+    }));
     $("rank-refresh").addEventListener("click", () => { rankPage = 0; void loadRanks(true); });
     $("rank-prev").addEventListener("click", () => { if (rankPage > 0) { rankPage--; drawRankPage(); } });
     $("rank-next").addEventListener("click", () => { if (rankData && (rankPage + 1) * rankPageSize < rankData.rows.length) { rankPage++; drawRankPage(); } });
