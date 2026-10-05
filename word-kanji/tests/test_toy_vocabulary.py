@@ -11,6 +11,8 @@ class ToyVocabularyTests(unittest.TestCase):
     def test_targeted_policy_preserves_neutral_words(self):
         self.assertTrue(all(allowed(w) for w in ("性能", "阴天", "精神", "乳酪", "消毒", "杀菌")))
         self.assertFalse(any(allowed(w) for w in ("色情", "赌博", "自杀", "傻逼")))
+        self.assertTrue(allowed("成人"))
+        self.assertFalse(any(allowed(w) for w in ("㚻", "㞗", "婬", "打炮", "约炮", "卖身")))
 
     def test_campaign_checks_edges_and_keeps_only_public_records(self):
         # Artificial rules/words only, not a real puzzle fixture.

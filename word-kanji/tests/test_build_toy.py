@@ -30,6 +30,13 @@ class ToyBuildTests(unittest.TestCase):
             for name in ("endless.js",):
                 self.assertEqual((target / name).read_bytes(), (ROOT / "public" / name).read_bytes())
             vocabulary = json.loads((ROOT / "public/endless-lexicon.json").read_text(encoding="utf-8"))
+            # Independent regressions from the previous shipped dictionary audit.
+            # Generic words only; never associate these with real puzzle records.
+            rejected = set("鸡巴 鸡掰 我操 做鸡 叫鸡 奶子 奶头 奶罩 叫床 床技 床友 床戏 发骚 骚货 聊骚 撩骚 猥亵 娈童 肛塞 舔肛 蜜穴 春画 欲女 欲经 胸推 臀推 鸡鸡 鸡儿 二奶 蛋逼 逼逼 娘的 脑残 黄片 黄书 睪丸 屁精".split())
+            built = json.loads((target / "endless-lexicon.json").read_text(encoding="utf-8"))
+            hints_built = json.loads((target / "hsk-two-words.json").read_text(encoding="utf-8"))["words"]
+            self.assertFalse(rejected.intersection(built["common"] + built["broad"] + hints_built))
+            self.assertTrue(set("性能 阴天 精神 乳酪 消毒 杀菌 黑人 白人 残疾".split()).issubset(set(built["common"] + built["broad"])))
             self.assertEqual(json.loads((target / "endless-lexicon.json").read_text(encoding="utf-8")), filter_endless(vocabulary))
             self.assertIn(REVISION, (target / "endless-engine.js").read_text(encoding="utf-8"))
             self.assertIn(hashlib.sha256((target / "endless-lexicon.json").read_bytes()).hexdigest(),
