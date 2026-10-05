@@ -7,10 +7,6 @@ globalThis.crypto ??= webcrypto;
 const { CloudProgress, cleanRecord, scopeKey } = await import(pathToFileURL(resolve(process.argv[2], 'cloud.js')));
 const one = 'campaign-one-standard', two = 'campaign-two-standard';
 const catalog = { [one]: { revision: 'a'.repeat(16), total: 8 }, [two]: { revision: 'b'.repeat(16), total: 8 } };
-const { REVISION } = await import(pathToFileURL(resolve(process.argv[2], 'endless.js')));
-const endlessOne = 'endless-one-standard', endlessTwo = 'endless-two-standard';
-for (const mode of [endlessOne, endlessTwo]) catalog[mode] = { revision: REVISION, endless: true };
-const endlessRecord = next => ({ v: 1, revision: REVISION, next });
 const record = (mode, count, pending) => ({ v: 1, revision: catalog[mode].revision, completed: count,
   pending: pending || Array.from({ length: Math.min(8, count + 3) - count }, (_, i) => count + i + 1) });
 function harness() {
@@ -105,33 +101,17 @@ function harness() {
 console.log('Toy cloud tests passed: isolation, merge, whitelist, retry, corrupt data, score idempotence, concurrent completion.');
 {
   const h = harness();
-  h.data.alpha[h.cloud.cloudKey(one)] = JSON.stringify(record(one, 2));
+  const retiredKey = 'wk1_3_endless-v3';
+  const retired = JSON.stringify({v: 1, revision: 'endless-v3', next: 20});
+  h.data.alpha[retiredKey] = retired;
+  const requested = [];
+  const read = h.api.getCloudStorage;
+  h.api.getCloudStorage = async keys => { requested.push(...keys); return read(); };
   await h.cloud.connect();
-  assert.equal(h.cloud.records[one].completed, 2);
-  assert.equal(h.cloud.readEndless(endlessOne).next, 1, 'old cloud saves initialize the new modes independently');
-  h.cloud.save(endlessOne, endlessRecord(4)); await h.cloud.inFlight;
-  h.cloud.save(endlessTwo, endlessRecord(2)); await h.cloud.inFlight;
-  assert.deepEqual(h.calls.filter(c => c[0] === 'rank').map(c => c.slice(2)), [[1, 2], [3, 3], [4, 1]]);
-  h.data.alpha[h.cloud.cloudKey(endlessOne)] = JSON.stringify(endlessRecord(6));
-  await h.cloud.flush();
-  h.cloud.save(endlessOne, endlessRecord(3)); await h.cloud.inFlight;
-  assert.equal(h.cloud.readEndless(endlessOne).next, 6);
-  assert.equal(h.cloud.readEndless(endlessTwo).next, 2);
-  for (const mode of [endlessOne, endlessTwo]) {
-    assert.deepEqual(Object.keys(JSON.parse(h.data.alpha[h.cloud.cloudKey(mode)])).sort(), ['next', 'revision', 'v']);
-    for (const bad of [0, -1, 1.5, Number.MAX_SAFE_INTEGER]) assert.throws(() => cleanRecord(endlessRecord(bad), catalog[mode]));
-    assert.throws(() => cleanRecord({...endlessRecord(2), extra: []}, catalog[mode]));
-  }
-  h.fail('read'); h.cloud.save(endlessTwo, endlessRecord(3)); await h.cloud.inFlight;
-  assert.equal(JSON.parse(h.local.get(h.cloud.cacheKey)).modes[endlessTwo].next, 3);
-  h.fail(undefined); h.cloud.nextRetry = 0; await h.cloud.flush();
-  assert.equal(JSON.parse(h.data.alpha[h.cloud.cloudKey(endlessTwo)]).next, 3);
-  h.account('beta'); await h.cloud.flush(); await h.cloud.connect();
-  assert.equal(h.cloud.readEndless(endlessOne).next, 1);
-  assert.deepEqual(h.data.beta, { [scopeKey]: '2'.repeat(32) });
-  h.account('alpha'); await h.cloud.connect();
-  assert.equal(h.cloud.readEndless(endlessOne).next, 6);
-  assert.equal(h.cloud.readEndless(endlessTwo).next, 3);
-  assert.equal(h.calls.filter(c => c[0] === 'rank' && c[2] === 3).length, 2, 'restoring must not resubmit the same score');
+  h.cloud.save(one, record(one, 1)); await h.cloud.inFlight;
+  assert.deepEqual(Object.keys(h.cloud.records).sort(), [one, two].sort());
+  assert.equal(h.data.alpha[retiredKey], retired);
+  assert.ok(!requested.includes(retiredKey));
+  assert.ok(h.calls.filter(c => c[0] === 'rank').every(c => [1, 2].includes(c[2])));
 }
-console.log('Toy endless cloud passed: four boards, old saves, max merge, whitelist, offline retry, account isolation.');
+console.log('Retired mode records remain untouched; only campaign keys and boards are accessed.');

@@ -1,7 +1,7 @@
 import { CloudProgress } from "./cloud.js";
 
 const $ = id => document.getElementById(id);
-const rankButtons = ["rank-one", "rank-two", "rank-endless-one", "rank-endless-two"];
+const rankButtons = ["rank-one", "rank-two"];
 let cloud, hooks, activeBoard = 1, rankRequest = 0, connecting = false, restore;
 const rankCache = new Map();
 let rankPending, rankRetryAt = 0, rankFailures = 0;
@@ -115,7 +115,6 @@ function openRanks() {
 
 export const platform = {
   read(mode) { return cloud?.read(mode) || new Set(); },
-  readEndless(mode) { return cloud?.readEndless(mode); },
   save(mode, record) { cloud?.save(mode, record); },
   async start(bridge) {
     hooks = bridge;

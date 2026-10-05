@@ -27,3 +27,24 @@ class ToyVocabularyTests(unittest.TestCase):
         self.assertEqual(result["puzzles"], [other])
         self.assertNotEqual(result["revision"], "old")
         self.assertEqual(len(data["puzzles"]), 2)
+
+    def test_two_campaign_filters_middle_word_edges_and_clues(self):
+        # Artificial alphabet and rules; no real puzzle/solution correspondence.
+        from unittest.mock import patch
+        def fixture(identifier, value, symbols):
+            a, b, c, d, e, f = symbols
+            return {"id": identifier, "salt": "salt",
+                    "clues": {"top": [a, b], "bottom": [c, d], "left": e, "right": f},
+                    "check": hashlib.sha256(f"version:{identifier}:salt:{value}".encode()).hexdigest()}
+        first = fixture("first", "XY", "ABCDEF")
+        second = fixture("second", "ZW", "GHIJKL")
+        data = {"version": "version", "revision": "old", "puzzles": [first, second]}
+        words = ["XY", "AX", "BY", "XC", "YD", "EX", "YF",
+                 "ZW", "GZ", "HW", "ZI", "WJ", "KZ", "WL"]
+        for excluded in ("XY", "AX", "BY", "XC", "YD", "EX", "YF", *"ABCDEF"):
+            with self.subTest(excluded=excluded), patch("vocabulary_policy.allowed", side_effect=lambda w: w != excluded):
+                result = filter_campaign(data, words, 2)
+                self.assertEqual(result["puzzles"], [second])
+                self.assertNotEqual(result["revision"], data["revision"])
+        with patch("vocabulary_policy.allowed", return_value=True):
+            self.assertEqual(filter_campaign(data, words, 2), data)

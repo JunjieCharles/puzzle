@@ -1,19 +1,12 @@
 import { passedLevels, progressRecord } from "./progress.js";
-import { validateEndless } from "./endless.js";
 
-export const boards = { "campaign-one-standard": 1, "campaign-two-standard": 2,
-  "endless-one-standard": 3, "endless-two-standard": 4 };
+export const boards = { "campaign-one-standard": 1, "campaign-two-standard": 2 };
 export const scopeKey = "wk_scope_v1";
 const keys = record => Object.keys(record).sort().join(",");
 const problem = (message, permanent = true) => Object.assign(new Error(message), { permanent });
 
 // Every persistent value is rebuilt from a progress whitelist, never from game inputs.
 export function cleanRecord(value, spec) {
-  if (spec.endless) {
-    if (!value || keys(value) !== "next,revision,v" || value.v !== 1 || value.revision !== spec.revision) throw problem("无尽云存档格式无效，未覆盖原存档");
-    try { return { v: 1, ...validateEndless(value) }; }
-    catch { throw problem("无尽云存档进度无效，未覆盖原存档"); }
-  }
   if (!value || keys(value) !== "completed,pending,revision,v" || value.v !== 1 || value.revision !== spec.revision || !Array.isArray(value.pending)) {
     throw problem("云存档版本不匹配或内容损坏，未覆盖原存档");
   }
@@ -22,7 +15,6 @@ export function cleanRecord(value, spec) {
 }
 
 export function mergeRecord(a, b, spec) {
-  if (spec.endless) return { v: 1, revision: spec.revision, next: Math.max(cleanRecord(a, spec).next, cleanRecord(b, spec).next) };
   return { v: 1, ...progressRecord(new Set([...passedLevels(a, spec.total), ...passedLevels(b, spec.total)]), spec.total, spec.revision) };
 }
 
@@ -34,11 +26,10 @@ export class CloudProgress {
   }
   empty() {
     return Object.fromEntries(Object.entries(this.catalog).map(([mode, spec]) =>
-      [mode, spec.endless ? { v: 1, revision: spec.revision, next: 1 } : { v: 1, ...progressRecord(new Set(), spec.total, spec.revision) }]));
+      [mode, { v: 1, ...progressRecord(new Set(), spec.total, spec.revision) }]));
   }
   cloudKey(mode) { return `wk1_${boards[mode]}_${this.catalog[mode].revision}`; }
   read(mode) { return this.records[mode] ? passedLevels(this.records[mode], this.catalog[mode].total) : new Set(); }
-  readEndless(mode) { return this.records[mode] ? validateEndless(this.records[mode]) : null; }
   stop(message = "正在读取云存档…") {
     this.epoch++; this.cancel(this.retryTimer); this.retryTimer = undefined;
     this.identity = undefined; this.cacheKey = undefined; this.records = {}; this.ack = {};
@@ -181,7 +172,7 @@ export class CloudProgress {
     if (!this.rankBlocked) {
       try {
         for (const [mode, record] of Object.entries(snapshot)) {
-          const score = this.catalog[mode].endless ? record.next - 1 : record.completed;
+          const score = record.completed;
           if (score === 0) continue;
           if (this.ack[mode] === undefined) {
             const mine = await this.sdk().getMyRank({ board: boards[mode], period: "all" });
