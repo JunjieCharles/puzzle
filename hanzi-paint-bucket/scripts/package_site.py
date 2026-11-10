@@ -10,7 +10,7 @@ from audit_public import inspect_file
 
 ASSETS = ('index.html', 'style.css', 'bucket.svg', 'game.mjs', 'decrypt.mjs',
           'state.mjs', 'glyph.mjs', 'fill.mjs', 'levels.json',
-          'fonts/HarmonyOS_Sans_SC_Thin.ttf', 'fonts/LICENSE-HarmonyOS-Sans.txt')
+          'fonts/HarmonyOS_Sans_SC_Thin.woff2', 'fonts/LICENSE-HarmonyOS-Sans.txt')
 
 
 def package_site(output, base_path=''):

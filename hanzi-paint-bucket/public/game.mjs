@@ -29,7 +29,8 @@ async function loadBank() {
     if (!response.ok) throw new Error('题目加载失败，请重试');
     const data = await response.json();
     if (data.version !== 'paint-v3' || !data.puzzles?.length) throw new Error('题目格式无效');
-    await ensureFont();
+    // Clues are pre-rendered; do not block level selection on the display font.
+    ensureFont().catch(()=>{});
     bank = data; mergeStored(); return bank;
   })().finally(()=>{loading = null;});
   return loading;
@@ -126,6 +127,7 @@ $('puzzle-form').addEventListener('submit', async event => {
   if(Array.from(word).length!==puzzle.images.length||!/^\p{Script=Han}+$/u.test(word)) {$('feedback').textContent=`请输入 ${puzzle.images.length} 字词语`;$('word-entry').className='wrong';return;}
   checking=true; $('submit').disabled=true;
   try {
+    await ensureFont();
     const correct=word===await decryptWord(puzzle,bank.encryption);
     if(ticket!==routeTicket)return;
     // If the player edits while decrypting, ignore the stale check.
@@ -158,6 +160,7 @@ $('reveal').onclick=async()=>{
   const ticket=routeTicket;
   $('reveal').disabled=true;checking=true;$('submit').disabled=true;
   try {
+    await ensureFont();
     const word=await decryptWord(bank.puzzles[current-1],bank.encryption);
     if(ticket!==routeTicket)return;
     showWord(word);$('word-entry').value='';$('word-entry').readOnly=true;
@@ -179,7 +182,7 @@ $('save-import').onclick=async()=>{
 };
 let fontReady;
 function ensureFont() {
-  fontReady ||= new FontFace('PaintTutorial','url("./fonts/HarmonyOS_Sans_SC_Thin.ttf")',{weight:'250'}).load().then(face=>{document.fonts.add(face);return face;}).catch(()=>{fontReady=null;throw new Error('字体加载失败，请重试');});
+  fontReady ||= new FontFace('PaintTutorial','url("./fonts/HarmonyOS_Sans_SC_Thin.woff2")',{weight:'250'}).load().then(face=>{document.fonts.add(face);return face;}).catch(()=>{fontReady=null;throw new Error('字体加载失败，请重试');});
   return fontReady;
 }
 async function helpDemo() {
