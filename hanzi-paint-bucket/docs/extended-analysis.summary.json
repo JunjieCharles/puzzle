@@ -1,0 +1,97 @@
+{
+  "standard": "HSK 3.0 (2025-11 / 2026-07)",
+  "lexicon_sha256": "adcac66db3256ec73bf8826444007b519b27987e1ded70bcd244cc4054d286dd",
+  "words": 61232,
+  "characters": 6134,
+  "words_by_length": {
+    "2": 60383,
+    "3": 391,
+    "4": 458
+  },
+  "render": {
+    "canvas": 480,
+    "font_size": 400,
+    "alpha_threshold": 128,
+    "connectivity": 4
+  },
+  "position_policy": "fixed_canvas_only",
+  "scope": "extended",
+  "minimum_word_length": 2,
+  "excluded_single_character_entries": 10982,
+  "similarity_computed": false,
+  "fonts": {
+    "HarmonyOS Sans SC": {
+      "paintable_characters": 3986,
+      "eligible_words": 18586,
+      "supported_characters": 6085,
+      "missing_characters": 49,
+      "supported_without_paint": 2099,
+      "eligible_words_by_length": {
+        "2": 18526,
+        "3": 37,
+        "4": 23
+      },
+      "region_count_distribution": {
+        "1": 1237,
+        "2": 1010,
+        "3": 650,
+        "4": 600,
+        "5": 260,
+        "6": 115,
+        "7": 59,
+        "8": 27,
+        "9": 13,
+        "10": 6,
+        "11": 3,
+        "12": 5,
+        "13": 1
+      },
+      "positive_area_px_percentiles": {
+        "min": 1.0,
+        "p25": 10489.0,
+        "median": 15976.5,
+        "p75": 22485.25,
+        "max": 77442.0
+      },
+      "tiny_total_area_below_25px": 20,
+      "similarity": {},
+      "area_sensitivity": [
+        {
+          "minimum_total_area_px": 1,
+          "characters": 3986,
+          "words": 18586,
+          "two_character_words": 18526
+        },
+        {
+          "minimum_total_area_px": 25,
+          "characters": 3966,
+          "words": 18327,
+          "two_character_words": 18268
+        },
+        {
+          "minimum_total_area_px": 100,
+          "characters": 3966,
+          "words": 18327,
+          "two_character_words": 18268
+        },
+        {
+          "minimum_total_area_px": 400,
+          "characters": 3966,
+          "words": 18327,
+          "two_character_words": 18268
+        }
+      ]
+    }
+  },
+  "extended_lexicon_sha256": "430a352eca23b62195f7a536fd2e79651b4d8b2fb663eab6b88581a66b3be44f",
+  "extended_lexicon_version": "endless-lexicon-v1",
+  "font_sources": {
+    "HarmonyOS Sans SC": {
+      "sha256": "a88d9065dc144bf462e6553e308e9d5256bfe1a068abb47a3ee1081d636ea91a",
+      "postscript_name": "HarmonyOS_Sans_SC_Thin",
+      "version": "Version 1.0",
+      "missing_glyphs": 49
+    }
+  },
+  "browser_version": "157.0.4341.42"
+}

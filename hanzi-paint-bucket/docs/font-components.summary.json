@@ -1,0 +1,108 @@
+{
+  "method": "six-font-paint-components-min25-v1",
+  "scope": "characters in HSK words of length 2/3/4",
+  "hsk_sha256": "adcac66db3256ec73bf8826444007b519b27987e1ded70bcd244cc4054d286dd",
+  "render": {
+    "canvas": 480,
+    "font_size": 400,
+    "alpha_threshold": 128,
+    "connectivity": 4
+  },
+  "browser_version": "157.0.4341.42",
+  "font_order": [
+    "Noto Sans SC",
+    "MiSans",
+    "HarmonyOS Sans SC",
+    "SimHei",
+    "Microsoft YaHei",
+    "DengXian"
+  ],
+  "fonts": {
+    "Noto Sans SC": {
+      "source_sha256": "e4771ec72c73acdac3af8c448c1f6c0c8084d8279843d44df8a3b32cb2a080a3",
+      "source_file": "NotoSansSCThin-5.ttf",
+      "face_index": null,
+      "family": "Noto Sans SC Thin",
+      "style": "Thin",
+      "postscript_name": "NotoSansSCThin",
+      "version": "Version 0.00 May 4, 2016",
+      "weight": 200,
+      "render_file_sha256": "e4771ec72c73acdac3af8c448c1f6c0c8084d8279843d44df8a3b32cb2a080a3",
+      "missing_characters": 0
+    },
+    "MiSans": {
+      "source_sha256": "288cc291d146e6d88edd2ad5ce7bbcdb02cd36a27fce44e67d3294e4524704be",
+      "source_file": "MiSans-Thin.ttf",
+      "face_index": null,
+      "family": "MiSans",
+      "style": "Thin",
+      "postscript_name": "MiSans-Thin",
+      "version": "Version 4.003",
+      "weight": 150,
+      "render_file_sha256": "288cc291d146e6d88edd2ad5ce7bbcdb02cd36a27fce44e67d3294e4524704be",
+      "missing_characters": 0
+    },
+    "HarmonyOS Sans SC": {
+      "source_sha256": "a88d9065dc144bf462e6553e308e9d5256bfe1a068abb47a3ee1081d636ea91a",
+      "source_file": "HarmonyOS_Sans_SC_Thin.ttf",
+      "face_index": null,
+      "family": "HarmonyOS Sans SC",
+      "style": "Thin",
+      "postscript_name": "HarmonyOS_Sans_SC_Thin",
+      "version": "Version 1.0",
+      "weight": 250,
+      "render_file_sha256": "a88d9065dc144bf462e6553e308e9d5256bfe1a068abb47a3ee1081d636ea91a",
+      "missing_characters": 0
+    },
+    "SimHei": {
+      "source_sha256": "aa4560dd8fe5645745fed3ffa301c3ca4d6c03cbd738145b613303961ba733b8",
+      "source_file": "simhei.ttf",
+      "face_index": null,
+      "family": "SimHei",
+      "style": "Regular",
+      "postscript_name": "SimHei",
+      "version": "Version 5.03",
+      "weight": 400,
+      "render_file_sha256": "aa4560dd8fe5645745fed3ffa301c3ca4d6c03cbd738145b613303961ba733b8",
+      "missing_characters": 0
+    },
+    "Microsoft YaHei": {
+      "source_sha256": "7e9bdf90bb5d3fe1b5975fc8ae31944b8fa674122261f92c28d4ec0b9c482fa1",
+      "source_file": "msyhl.ttc",
+      "face_index": 0,
+      "family": "Microsoft YaHei Light",
+      "style": "Regular",
+      "postscript_name": "MicrosoftYaHeiLight",
+      "version": "Version 6.25",
+      "weight": 290,
+      "render_file_sha256": "3273ef640b89b3aec40e73e30eeb6d34de3d1f2cd82a5c6c6063f73a2612de69",
+      "missing_characters": 0
+    },
+    "DengXian": {
+      "source_sha256": "3ae7cf364a29b9da69eff7333decb88e577c262c5847df2510e37695e25a8395",
+      "source_file": "Dengl.ttf",
+      "face_index": null,
+      "family": "DengXian Light",
+      "style": "Regular",
+      "postscript_name": "DengXian-Light",
+      "version": "Version 1.22",
+      "weight": 300,
+      "render_file_sha256": "3ae7cf364a29b9da69eff7333decb88e577c262c5847df2510e37695e25a8395",
+      "missing_characters": 0
+    }
+  },
+  "characters": 2879,
+  "inconsistent_characters": 389,
+  "missing_font_characters": 0,
+  "previous_bank_characters": 839,
+  "inconsistent_characters_in_previous_bank": 189,
+  "previous_questions_containing_inconsistent_characters": 179,
+  "previous_affected_questions_by_length": {
+    "2": 148,
+    "3": 10,
+    "4": 21
+  },
+  "minimum_component_area_px": 25,
+  "small_components": "ignore enclosed components below 25 pixels; include exactly 25 pixels",
+  "missing_policy": "unverifiable; separately excluded from question selection, never render using fallback"
+}

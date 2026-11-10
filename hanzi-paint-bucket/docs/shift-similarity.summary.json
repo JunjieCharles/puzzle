@@ -1,0 +1,98 @@
+{
+  "translation": "global integer maximum IoU; minimum Manhattan among global maximizers; no clipping, rotation or scaling",
+  "threshold_comparison": "strict > IoU and strict < distance; pixels on 480 canvas / 400 font",
+  "correlations": 17087,
+  "baseline_puzzles": 352,
+  "settings": [
+    {
+      "iou_gt": 0.9,
+      "manhattan_lt": 5,
+      "similar_character_pairs": 943,
+      "ambiguous_paintable_words": 35,
+      "excluded_ambiguous_words": 20,
+      "puzzle_count": 351,
+      "removed_from_baseline": 2,
+      "added_to_baseline": 1
+    },
+    {
+      "iou_gt": 0.9,
+      "manhattan_lt": 10,
+      "similar_character_pairs": 2012,
+      "ambiguous_paintable_words": 71,
+      "excluded_ambiguous_words": 43,
+      "puzzle_count": 347,
+      "removed_from_baseline": 10,
+      "added_to_baseline": 5
+    },
+    {
+      "iou_gt": 0.9,
+      "manhattan_lt": 20,
+      "similar_character_pairs": 3270,
+      "ambiguous_paintable_words": 111,
+      "excluded_ambiguous_words": 59,
+      "puzzle_count": 345,
+      "removed_from_baseline": 14,
+      "added_to_baseline": 7
+    },
+    {
+      "iou_gt": 0.95,
+      "manhattan_lt": 5,
+      "similar_character_pairs": 327,
+      "ambiguous_paintable_words": 8,
+      "excluded_ambiguous_words": 7,
+      "puzzle_count": 351,
+      "removed_from_baseline": 2,
+      "added_to_baseline": 1
+    },
+    {
+      "iou_gt": 0.95,
+      "manhattan_lt": 10,
+      "similar_character_pairs": 698,
+      "ambiguous_paintable_words": 23,
+      "excluded_ambiguous_words": 16,
+      "puzzle_count": 349,
+      "removed_from_baseline": 6,
+      "added_to_baseline": 3
+    },
+    {
+      "iou_gt": 0.95,
+      "manhattan_lt": 20,
+      "similar_character_pairs": 1070,
+      "ambiguous_paintable_words": 33,
+      "excluded_ambiguous_words": 17,
+      "puzzle_count": 349,
+      "removed_from_baseline": 6,
+      "added_to_baseline": 3
+    },
+    {
+      "iou_gt": 0.98,
+      "manhattan_lt": 5,
+      "similar_character_pairs": 71,
+      "ambiguous_paintable_words": 1,
+      "excluded_ambiguous_words": 1,
+      "puzzle_count": 353,
+      "removed_from_baseline": 1,
+      "added_to_baseline": 2
+    },
+    {
+      "iou_gt": 0.98,
+      "manhattan_lt": 10,
+      "similar_character_pairs": 153,
+      "ambiguous_paintable_words": 2,
+      "excluded_ambiguous_words": 2,
+      "puzzle_count": 352,
+      "removed_from_baseline": 4,
+      "added_to_baseline": 4
+    },
+    {
+      "iou_gt": 0.98,
+      "manhattan_lt": 20,
+      "similar_character_pairs": 223,
+      "ambiguous_paintable_words": 2,
+      "excluded_ambiguous_words": 2,
+      "puzzle_count": 352,
+      "removed_from_baseline": 4,
+      "added_to_baseline": 4
+    }
+  ]
+}

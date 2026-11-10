@@ -1,0 +1,407 @@
+{
+  "standard": "HSK 3.0 (2025-11 / 2026-07)",
+  "lexicon_sha256": "adcac66db3256ec73bf8826444007b519b27987e1ded70bcd244cc4054d286dd",
+  "words": 10902,
+  "characters": 3088,
+  "words_by_length": {
+    "1": 1505,
+    "2": 8548,
+    "3": 391,
+    "4": 458
+  },
+  "render": {
+    "canvas": 480,
+    "font_size": 400,
+    "alpha_threshold": 128,
+    "connectivity": 4
+  },
+  "fonts": {
+    "Noto Sans SC": {
+      "paintable_characters": 1817,
+      "eligible_words": 3268,
+      "eligible_words_by_length": {
+        "1": 855,
+        "2": 2360,
+        "3": 34,
+        "4": 19
+      },
+      "region_count_distribution": {
+        "1": 642,
+        "2": 461,
+        "3": 303,
+        "4": 254,
+        "5": 87,
+        "6": 37,
+        "7": 22,
+        "8": 5,
+        "9": 4,
+        "10": 1,
+        "12": 1
+      },
+      "positive_area_px_percentiles": {
+        "min": 1.0,
+        "p25": 10706.0,
+        "median": 15948.0,
+        "p75": 22667.0,
+        "max": 84382.0
+      },
+      "tiny_total_area_below_25px": 8,
+      "similarity": {
+        "fixed_canvas": [
+          {
+            "tolerance": 0,
+            "character_pairs": 8,
+            "ambiguous_characters": 16,
+            "max_character_alternatives": 1,
+            "ambiguous_words": 2,
+            "word_pairs": 1,
+            "ambiguous_words_by_length": {
+              "1": 2
+            },
+            "max_word_alternatives": 1
+          },
+          {
+            "tolerance": 0.01,
+            "character_pairs": 9,
+            "ambiguous_characters": 18,
+            "max_character_alternatives": 1,
+            "ambiguous_words": 2,
+            "word_pairs": 1,
+            "ambiguous_words_by_length": {
+              "1": 2
+            },
+            "max_word_alternatives": 1
+          },
+          {
+            "tolerance": 0.03,
+            "character_pairs": 22,
+            "ambiguous_characters": 43,
+            "max_character_alternatives": 2,
+            "ambiguous_words": 10,
+            "word_pairs": 5,
+            "ambiguous_words_by_length": {
+              "1": 8,
+              "2": 2
+            },
+            "max_word_alternatives": 1
+          },
+          {
+            "tolerance": 0.05,
+            "character_pairs": 68,
+            "ambiguous_characters": 109,
+            "max_character_alternatives": 4,
+            "ambiguous_words": 21,
+            "word_pairs": 11,
+            "ambiguous_words_by_length": {
+              "1": 19,
+              "2": 2
+            },
+            "max_word_alternatives": 2
+          },
+          {
+            "tolerance": 0.1,
+            "character_pairs": 295,
+            "ambiguous_characters": 296,
+            "max_character_alternatives": 8,
+            "ambiguous_words": 87,
+            "word_pairs": 63,
+            "ambiguous_words_by_length": {
+              "1": 79,
+              "2": 8
+            },
+            "max_word_alternatives": 4
+          }
+        ]
+      },
+      "area_sensitivity": [
+        {
+          "minimum_total_area_px": 1,
+          "characters": 1817,
+          "words": 3268,
+          "two_character_words": 2360
+        },
+        {
+          "minimum_total_area_px": 25,
+          "characters": 1809,
+          "words": 3241,
+          "two_character_words": 2336
+        },
+        {
+          "minimum_total_area_px": 100,
+          "characters": 1809,
+          "words": 3241,
+          "two_character_words": 2336
+        },
+        {
+          "minimum_total_area_px": 400,
+          "characters": 1809,
+          "words": 3241,
+          "two_character_words": 2336
+        }
+      ]
+    },
+    "MiSans": {
+      "paintable_characters": 1848,
+      "eligible_words": 3334,
+      "eligible_words_by_length": {
+        "1": 865,
+        "2": 2414,
+        "3": 35,
+        "4": 20
+      },
+      "region_count_distribution": {
+        "1": 648,
+        "2": 472,
+        "3": 308,
+        "4": 271,
+        "5": 82,
+        "6": 38,
+        "7": 20,
+        "8": 4,
+        "9": 3,
+        "10": 1,
+        "12": 1
+      },
+      "positive_area_px_percentiles": {
+        "min": 1.0,
+        "p25": 11301.5,
+        "median": 17073.0,
+        "p75": 24254.25,
+        "max": 77165.0
+      },
+      "tiny_total_area_below_25px": 3,
+      "similarity": {
+        "fixed_canvas": [
+          {
+            "tolerance": 0,
+            "character_pairs": 0,
+            "ambiguous_characters": 0,
+            "max_character_alternatives": 0,
+            "ambiguous_words": 0,
+            "word_pairs": 0,
+            "ambiguous_words_by_length": {},
+            "max_word_alternatives": 0
+          },
+          {
+            "tolerance": 0.01,
+            "character_pairs": 7,
+            "ambiguous_characters": 14,
+            "max_character_alternatives": 1,
+            "ambiguous_words": 2,
+            "word_pairs": 1,
+            "ambiguous_words_by_length": {
+              "1": 2
+            },
+            "max_word_alternatives": 1
+          },
+          {
+            "tolerance": 0.03,
+            "character_pairs": 29,
+            "ambiguous_characters": 48,
+            "max_character_alternatives": 3,
+            "ambiguous_words": 4,
+            "word_pairs": 2,
+            "ambiguous_words_by_length": {
+              "1": 4
+            },
+            "max_word_alternatives": 1
+          },
+          {
+            "tolerance": 0.05,
+            "character_pairs": 68,
+            "ambiguous_characters": 104,
+            "max_character_alternatives": 4,
+            "ambiguous_words": 29,
+            "word_pairs": 16,
+            "ambiguous_words_by_length": {
+              "1": 27,
+              "2": 2
+            },
+            "max_word_alternatives": 2
+          },
+          {
+            "tolerance": 0.1,
+            "character_pairs": 303,
+            "ambiguous_characters": 318,
+            "max_character_alternatives": 9,
+            "ambiguous_words": 116,
+            "word_pairs": 91,
+            "ambiguous_words_by_length": {
+              "1": 110,
+              "2": 6
+            },
+            "max_word_alternatives": 8
+          }
+        ]
+      },
+      "area_sensitivity": [
+        {
+          "minimum_total_area_px": 1,
+          "characters": 1848,
+          "words": 3334,
+          "two_character_words": 2414
+        },
+        {
+          "minimum_total_area_px": 25,
+          "characters": 1845,
+          "words": 3329,
+          "two_character_words": 2410
+        },
+        {
+          "minimum_total_area_px": 100,
+          "characters": 1845,
+          "words": 3329,
+          "two_character_words": 2410
+        },
+        {
+          "minimum_total_area_px": 400,
+          "characters": 1845,
+          "words": 3329,
+          "two_character_words": 2410
+        }
+      ]
+    },
+    "HarmonyOS Sans SC": {
+      "paintable_characters": 1859,
+      "eligible_words": 3399,
+      "eligible_words_by_length": {
+        "1": 874,
+        "2": 2465,
+        "3": 37,
+        "4": 23
+      },
+      "region_count_distribution": {
+        "1": 649,
+        "2": 474,
+        "3": 309,
+        "4": 278,
+        "5": 80,
+        "6": 38,
+        "7": 21,
+        "8": 5,
+        "9": 3,
+        "10": 1,
+        "12": 1
+      },
+      "positive_area_px_percentiles": {
+        "min": 1.0,
+        "p25": 10911.5,
+        "median": 16590.0,
+        "p75": 23746.5,
+        "max": 77221.0
+      },
+      "tiny_total_area_below_25px": 11,
+      "similarity": {
+        "fixed_canvas": [
+          {
+            "tolerance": 0,
+            "character_pairs": 0,
+            "ambiguous_characters": 0,
+            "max_character_alternatives": 0,
+            "ambiguous_words": 0,
+            "word_pairs": 0,
+            "ambiguous_words_by_length": {},
+            "max_word_alternatives": 0
+          },
+          {
+            "tolerance": 0.01,
+            "character_pairs": 3,
+            "ambiguous_characters": 6,
+            "max_character_alternatives": 1,
+            "ambiguous_words": 2,
+            "word_pairs": 1,
+            "ambiguous_words_by_length": {
+              "1": 2
+            },
+            "max_word_alternatives": 1
+          },
+          {
+            "tolerance": 0.03,
+            "character_pairs": 23,
+            "ambiguous_characters": 46,
+            "max_character_alternatives": 1,
+            "ambiguous_words": 8,
+            "word_pairs": 4,
+            "ambiguous_words_by_length": {
+              "1": 8
+            },
+            "max_word_alternatives": 1
+          },
+          {
+            "tolerance": 0.05,
+            "character_pairs": 64,
+            "ambiguous_characters": 114,
+            "max_character_alternatives": 2,
+            "ambiguous_words": 30,
+            "word_pairs": 16,
+            "ambiguous_words_by_length": {
+              "1": 30
+            },
+            "max_word_alternatives": 2
+          },
+          {
+            "tolerance": 0.1,
+            "character_pairs": 257,
+            "ambiguous_characters": 329,
+            "max_character_alternatives": 7,
+            "ambiguous_words": 104,
+            "word_pairs": 70,
+            "ambiguous_words_by_length": {
+              "1": 98,
+              "2": 6
+            },
+            "max_word_alternatives": 4
+          }
+        ]
+      },
+      "area_sensitivity": [
+        {
+          "minimum_total_area_px": 1,
+          "characters": 1859,
+          "words": 3399,
+          "two_character_words": 2465
+        },
+        {
+          "minimum_total_area_px": 25,
+          "characters": 1848,
+          "words": 3359,
+          "two_character_words": 2435
+        },
+        {
+          "minimum_total_area_px": 100,
+          "characters": 1848,
+          "words": 3359,
+          "two_character_words": 2435
+        },
+        {
+          "minimum_total_area_px": 400,
+          "characters": 1848,
+          "words": 3359,
+          "two_character_words": 2435
+        }
+      ]
+    }
+  },
+  "browser_version": "157.0.4341.42",
+  "font_sources": {
+    "Noto Sans SC": {
+      "sha256": "e4771ec72c73acdac3af8c448c1f6c0c8084d8279843d44df8a3b32cb2a080a3",
+      "postscript_name": "NotoSansSCThin",
+      "version": "Version 0.00 May 4, 2016",
+      "missing_glyphs": 0
+    },
+    "MiSans": {
+      "sha256": "288cc291d146e6d88edd2ad5ce7bbcdb02cd36a27fce44e67d3294e4524704be",
+      "postscript_name": "MiSans-Thin",
+      "version": "Version 4.003",
+      "missing_glyphs": 0
+    },
+    "HarmonyOS Sans SC": {
+      "sha256": "a88d9065dc144bf462e6553e308e9d5256bfe1a068abb47a3ee1081d636ea91a",
+      "postscript_name": "HarmonyOS_Sans_SC_Thin",
+      "version": "Version 1.0",
+      "missing_glyphs": 0
+    }
+  },
+  "position_policy": "fixed_canvas_only"
+}

@@ -3,6 +3,7 @@
 每个 puzzle 在独立子目录中开发，网址统一为 `/puzzle/<项目名>/`。
 
 - [word-kanji](word-kanji/README.md)：和同開珎。
+- [汉字油漆桶](hanzi-paint-bucket/README.md)：使用 HarmonyOS Sans SC Thin 的闭合区域填色页面与扩展词库分析。
 - [hanzi-projection](hanzi-projection/README.md)：汉字双视图，灰度字形与双向投影实验。
 - [hanzi-floorplan](hanzi-floorplan/README.md)：汉字户型图，可选 5×5 至 8×8 网格的连通块空间分配与黑体最细字重对比网页。
 - [仓库协作约定](AGENTS.md)：目录组织、需求归档及答案保护。

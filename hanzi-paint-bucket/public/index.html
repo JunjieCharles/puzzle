@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>汉字油漆桶 · 字体实验室</title>
+<link rel="stylesheet" href="./style.css">
+<main>
+  <header><span class="eyebrow">字形实验 / 01</span><h1>汉字油漆桶<span class="dot">.</span></h1><p>把笔画围住的空白，变成色彩。</p></header>
+  <section class="controls" aria-label="输入与显示设置">
+    <label for="text">想看看哪些文字？</label>
+    <textarea id="text" rows="2" placeholder="在这里输入文字" autocomplete="off" spellcheck="false"></textarea>
+    <div class="toolbar"><span id="count">最多显示 16 个非空白字符</span><label><input id="ink" type="checkbox" checked> 保留笔画</label><label><input id="multi" type="checkbox" checked> 分区配色</label><label class="color">填色 <input id="color" type="color" value="#efb641"></label><button id="clear" type="button">清空</button></div>
+  </section>
+  <p class="note">HarmonyOS Sans SC · Thin 最细字重<span>有缺口的区域会保持空白</span></p>
+  <div id="results"></div>
+  <footer>文字和涂色结果仅在当前页面中处理，刷新后清空。字体未加载时不会使用其他字体替代。</footer>
+</main>
+<script type="module" src="./app.js"></script>
+</html>
