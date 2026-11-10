@@ -3,6 +3,7 @@
 每个 puzzle 在独立子目录中开发，网址统一为 `/puzzle/<项目名>/`。
 
 - [word-kanji](word-kanji/README.md)：和同開珎。
+- [hanzi-projection](hanzi-projection/README.md)：汉字双视图，灰度字形与双向投影实验。
 - [仓库协作约定](AGENTS.md)：目录组织、需求归档及答案保护。
 
 ## 本地预览与部署

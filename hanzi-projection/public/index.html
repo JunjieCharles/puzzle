@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>汉字双视图 · 字形实验室</title>
+<link rel="stylesheet" href="./style.css">
+<main>
+  <header><span class="eyebrow">字形实验室 / 01</span><h1>汉字双视图<span>从两个方向，观察一个字。</span></h1><p>保留汉字的灰度边缘，按每个像素的黑度累加：纯黑为 1，纯白为 0。切换字体，看看两条曲线如何变化。</p></header>
+  <section class="controls" aria-label="实验参数">
+    <label class="characters">对比文字 <input id="characters" value="一十口日田木林人永国" maxlength="24" autocomplete="off" spellcheck="false"><small>最多 12 个不同汉字；这是字形比较，不是正式题库。</small></label>
+    <label>采样画布 <select id="size"><option>64</option><option>128</option><option selected>256</option></select></label>
+    <label>字号占画布 <select id="scale"><option value="0.65">65%</option><option value="0.8" selected>80%</option><option value="0.9">90%</option></select></label>
+    <fieldset><legend>对比字体（本机安装）</legend><div id="fonts"></div></fieldset>
+    <label class="toggle"><input id="hide" type="checkbox">只看曲线，暂时隐藏字形与字名</label>
+  </section>
+  <div class="guide"><span><i class="row"></i>左侧逐行：从上到下，黑度向左增加</span><span><i class="col"></i>下方逐列：从左到右，黑度向下增加</span><span>黑度累计：全部使用 0～画布边长 · 曲线与字形逐行逐列对齐</span></div>
+  <p id="status" role="status"></p>
+  <div id="results"></div>
+  <footer>同字号、同画布、同灰度累计方式 · 字形按可见边界居中，不拉伸 · 全部计算仅在当前页面内存中进行<br>暂定名「汉字双视图」；技术描述：汉字双向投影。两条投影不保证能唯一确定字形。</footer>
+</main>
+<script type="module" src="./app.js"></script>
+</html>
