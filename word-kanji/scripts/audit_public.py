@@ -54,6 +54,8 @@ def inspect_campaign(value):
 def inspect_json(value, location="$"):
     errors = []
     if isinstance(value, dict):
+        if {"character", "rooms"} <= value.keys():
+            errors.append(f"glyph-to-floorplan mapping at {location}")
         for key, child in value.items():
             if key in SENSITIVE_KEYS:
                 errors.append(f"answer-bearing JSON field {location}.{key}")
@@ -114,6 +116,8 @@ def inspect_two_campaign(value):
 
 def inspect_file(name, payload):
     path = Path(name)
+    if path.name in {"contact-sheet.png", "private-report.json"}:
+        return [f"private experiment artifact: {name}"]
     if (path.suffix in {".sqlite", ".db", ".bundle", ".pyc"}
             or "examples" in path.parts or "private" in path.parts or "raw" in path.parts):
         return [f"private artifact path: {name}"]

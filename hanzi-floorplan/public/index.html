@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>细黑体比较 · 汉字户型图</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body><main>
+  <header><div class="eyebrow">汉字户型图 / 字体实验室</div><h1>细一点，<br>看清字的空间。</h1><p>把各款黑体的最细字重放在一起，观察笔画间隙与连接关系。</p><span class="stamp"><span id="grid-stamp">6 × 6</span><br>TYPE STUDY</span></header>
+  <section class="controls" aria-label="对比设置">
+    <div class="control-row"><label class="characters">对比汉字<input id="characters" value="想谢静影霜窗" maxlength="48" autocomplete="off" spellcheck="false"><small>最多 12 个不同汉字 · 按行对比同一个字</small></label>
+    <label>排版方式<select id="layout"><option value="em">相同字号</option><option value="ink" selected>相同可见边长</option></select></label>
+    <label>字形尺寸<select id="scale"><option value="0.72">72%</option><option value="0.84">84%</option><option value="0.92">92%</option><option value="1" selected>100%</option></select></label>
+    <label>网格尺寸<select id="grid-size"><option value="5">5 × 5</option><option value="6" selected>6 × 6</option><option value="7">7 × 7</option><option value="8">8 × 8</option></select></label>
+    <label>房间连通<select id="connectivity"><option value="8" selected>八连通（角相接也算）</option><option value="4">四连通（须边相接）</option></select></label>
+    <label>优化指标<select id="objective"><option value="centerline" selected>平滑中心线（实验）</option><option value="ink">墨迹越界（原指标）</option></select></label>
+    <label>观察方式<select id="mode"><option value="plan" selected>户型划分 · 轮廓与叠字</option><option value="ink">原始字形</option><option value="components">连通块着色</option><option value="skeleton">笔画中心线</option></select></label></div>
+    <div class="control-row secondary"><label><input id="grid" type="checkbox" checked> 叠加网格</label><label>连通块阈值 <input id="threshold" type="range" min="32" max="224" step="8" value="96"><output id="threshold-value">96</output></label><span>颜色辅助区分连通块，超过 8 块循环配色</span></div>
+    <div class="control-row secondary"><label><input id="tune" type="checkbox" checked>小范围自动微调</label><span>大小不变（0%）；水平、垂直各 −10 至 +10 像素，步长 2 像素，最多 121 个位置。仅用于户型划分，禁止裁掉笔画。</span></div>
+    <fieldset><legend>对比字体 <span>默认思源黑体、MiSans、鸿蒙 Thin；其他字体勾选后加载，缺失时不替换成常规体</span></legend><div id="fonts" class="font-options"></div></fieldset>
+    <details><summary>添加其他字体</summary><p>选择本地 OTF / TTF / WOFF / WOFF2 文件，仅在本页内存中使用。请选择所需的细字重文件；可变字体使用文件默认字重，不自动判断最小值。字体缺少的汉字可能由浏览器回退显示，请优先使用完整的简体中文字体。</p><input id="font-file" type="file" accept=".otf,.ttf,.woff,.woff2" multiple><p id="file-status" role="status"></p></details>
+  </section>
+  <div class="results-heading"><h2>字形与户型对照</h2><p id="status" role="status" aria-live="polite">正在加载字体…</p></div>
+  <p class="plan-guide" id="plan-guide">每款字体：左侧看房间轮廓，右侧看汉字叠加，灰格为空白。先最小化所选损失，同损失时最小化占用格数。平滑中心线按近似中心线在横纵各 ±3 像素微扰下的平均越界计分，减少笔画粗细和贴格线的影响；可切回原墨迹指标对照。字形像素始终按八连通提取；房间默认也采用八连通，允许仅角相接，可切回四连通对照。每个房间保持非空且格子互不重叠；下方注明所选指标是否已证明最优。</p>
+  <div id="results"></div>
+  <footer><p>相同字号保留字体原有比例；相同可见边长按墨迹范围等比缩放。连通块按 384 × 384 画布、八邻接和所选阈值计算；极细笔画的计数可能随阈值变化。</p><p>本页使用 HarmonyOS Sans 字体（Copyright 2021 Huawei Device Co., Ltd.）。鸿蒙 Thin 与思源黑体 ExtraLight 随页面提供；其他字体来自本机。思源与 Noto CJK 同源，不应当作完全独立的设计。户型划分在当前页面即时计算，不保存或导出答案映射；与离线整数规划的结果可能不同。</p><a href="./fonts/LICENSE.txt">思源黑体许可证</a> · <a href="./fonts/LICENSE-HarmonyOS-Sans.txt">HarmonyOS Sans 许可证</a></footer>
+</main><script type="module" src="./app.js"></script></body></html>
