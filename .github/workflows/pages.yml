@@ -20,13 +20,17 @@ jobs:
       - name: Test and audit
         run: |
           python -m unittest discover -s word-kanji/tests -v
+          python -m unittest discover -s hanzi-paint-bucket/tests -p test_package_site.py -v
+          node --test hanzi-paint-bucket/tests/*.test.mjs
           python word-kanji/scripts/audit_public.py
       - uses: actions/configure-pages@v5
         id: pages
       - name: Package public files
         env:
           PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
-        run: python word-kanji/scripts/build_site.py --output "$RUNNER_TEMP/puzzle-site" --base-path "$PAGES_BASE_PATH"
+        run: |
+          python word-kanji/scripts/build_site.py --output "$RUNNER_TEMP/puzzle-site" --base-path "$PAGES_BASE_PATH"
+          python hanzi-paint-bucket/scripts/package_site.py --output "$RUNNER_TEMP/puzzle-site" --base-path "$PAGES_BASE_PATH"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ runner.temp }}/puzzle-site

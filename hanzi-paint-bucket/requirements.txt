@@ -4,3 +4,4 @@ scipy>=1.10
 fonttools>=4
 playwright>=1.40
 scikit-image>=0.23
+cryptography>=36

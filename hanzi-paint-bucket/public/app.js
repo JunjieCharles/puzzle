@@ -1,4 +1,5 @@
-import { enclosedRegions } from './fill.mjs';
+import { analyzeGlyph } from './glyph.mjs';
+export { analyzeGlyph } from './glyph.mjs';
 import { ranges } from './font-coverage.mjs';
 const specs = [
   { name: 'HarmonyOS Sans SC', weight: 250, source: 'url("./fonts/HarmonyOS_Sans_SC_Thin.ttf")' },
@@ -8,19 +9,7 @@ const palette = ['#efb641', '#49b9ae', '#f18d83', '#8d9ee0', '#b8ce68', '#be8cbf
 const rgb = (hex) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
 let version = 0;
 function characters() { return Array.from($('text').value).filter(c => !/\s/u.test(c)); }
-export function analyzeGlyph(char, family, weight) {
-  const size = 480, canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  ctx.font = `${weight} 400px "${family}"`;
-  const m = ctx.measureText(char);
-  ctx.fillText(char, (size - m.actualBoundingBoxRight + m.actualBoundingBoxLeft) / 2, (size + m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
-  const original = ctx.getImageData(0, 0, size, size);
-  const alpha = new Uint8Array(size * size);
-  for (let p = 0; p < alpha.length; p++) alpha[p] = original.data[p * 4 + 3];
-  const { labels, count } = enclosedRegions(alpha, size, size);
-  return {canvas, ctx, alpha, labels, count, size};
-}
+
 function draw(char, spec) {
   const {canvas, ctx, alpha, labels, count, size} = analyzeGlyph(char, spec.family, spec.weight);
   canvas.setAttribute('role', 'img');

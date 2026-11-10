@@ -152,7 +152,7 @@ def main():
             browser = p.chromium.launch(channel='msedge', headless=True)
             summary['browser_version'] = browser.version
             page = browser.new_page()
-            page.goto(f'http://127.0.0.1:{server.server_port}/puzzle/hanzi-paint-bucket/')
+            page.goto(f'http://127.0.0.1:{server.server_port}/puzzle/hanzi-paint-bucket/lab.html')
             page.wait_for_function("document.querySelectorAll('.status').length === 1 && [...document.querySelectorAll('.status')].every(x => !x.textContent.includes('…'))")
             if page.locator('.status.error').count():
                 raise RuntimeError('HarmonyOS Sans SC Thin must load; no fallback is allowed')

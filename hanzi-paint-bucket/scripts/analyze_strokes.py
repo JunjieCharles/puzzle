@@ -57,7 +57,7 @@ def main():
     try:
         with sync_playwright() as p:
             browser=p.chromium.launch(channel='msedge',headless=True);page=browser.new_page()
-            page.goto(f'http://localhost:{server.server_port}/puzzle/hanzi-paint-bucket/')
+            page.goto(f'http://localhost:{server.server_port}/puzzle/hanzi-paint-bucket/lab.html')
             page.wait_for_function("document.querySelector('.status').textContent.includes('Thin 已加载')")
             if browser.version!=metadata['browser_version']:raise ValueError('Browser version differs from paint analysis')
             for start in range(0,len(chars),32):

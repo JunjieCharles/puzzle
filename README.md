@@ -3,7 +3,7 @@
 每个 puzzle 在独立子目录中开发，网址统一为 `/puzzle/<项目名>/`。
 
 - [word-kanji](word-kanji/README.md)：和同開珎。
-- [汉字油漆桶](hanzi-paint-bucket/README.md)：使用 HarmonyOS Sans SC Thin 的闭合区域填色页面与扩展词库分析。
+- [汉字油漆桶](hanzi-paint-bucket/README.md)：根据汉字闭合区域涂色猜词的 246 关游戏，另附本地涂色实验与词库分析。
 - [hanzi-projection](hanzi-projection/README.md)：汉字双视图，灰度字形与双向投影实验。
 - [hanzi-floorplan](hanzi-floorplan/README.md)：汉字户型图，可选 5×5 至 8×8 网格的连通块空间分配与黑体最细字重对比网页。
 - [仓库协作约定](AGENTS.md)：目录组织、需求归档及答案保护。
@@ -13,6 +13,8 @@
 运行 `python word-kanji/scripts/serve.py`，访问终端列出的地址。项目内的预览服务将 `word-kanji/public/` 映射到 `/puzzle/word-kanji/`，不会公开项目的生成器、词库或文档。修改前端文件后刷新即可。
 
 静态部署时，将各项目 `public/` 内的文件复制到网站发布目录的 `puzzle/<项目名>/` 下。无需为了部署路径改变源码结构，也不要发布整个仓库。
+
+GitHub Pages 的 `Publish puzzle site` 工作流目前按白名单发布 `word-kanji` 与 `hanzi-paint-bucket` 游戏；油漆桶不打包实验页、生成器或私有预览。其他子项目尚未加入该发布流程。
 
 ```text
 puzzle/

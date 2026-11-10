@@ -168,7 +168,7 @@ def render(chars, glyphs, metrics, browser_version, require_metrics=False):
             if browser_version and browser.version!=browser_version:
                 raise ValueError('Browser version differs from cached analysis')
             browser_version=browser.version
-            page.goto(f'http://localhost:{server.server_port}/puzzle/hanzi-paint-bucket/')
+            page.goto(f'http://localhost:{server.server_port}/puzzle/hanzi-paint-bucket/lab.html')
             page.wait_for_function("document.querySelector('.status').textContent.includes('Thin 已加载')")
             for start in range(0,len(chars),32):
                 batch=page.evaluate('''async chars=>{
