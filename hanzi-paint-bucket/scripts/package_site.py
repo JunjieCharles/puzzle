@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT.parent / 'word-kanji/scripts'))
 from audit_public import inspect_file
 
-ASSETS = ('index.html', 'style.css', 'bucket.svg', 'game.mjs', 'decrypt.mjs',
+ASSETS = ('index.html', 'style.css', 'bucket.svg', 'game.mjs', 'decrypt.mjs', 'load-resource.mjs',
           'state.mjs', 'glyph.mjs', 'fill.mjs', 'levels.json',
           'fonts/HarmonyOS_Sans_SC_Thin.woff2', 'fonts/LICENSE-HarmonyOS-Sans.txt')
 
