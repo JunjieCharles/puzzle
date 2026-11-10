@@ -186,7 +186,7 @@ progress { width:100%; height:7px; border:0; background:#dce3d4; display:block; 
 #puzzle-form {gap:12px;min-height:320px}
 #levels .level-grid {flex:1}
 #help-demo {display:flex;justify-content:center;gap:16px;margin:24px 0}
-#help-demo canvas {width:42%;aspect-ratio:1;background:white;border:1px solid #d6dfda;border-radius:14px}
+#help-demo img {width:42%;aspect-ratio:1;background:white;border:1px solid #d6dfda;border-radius:14px}
 .help-word {font-size:30px!important;letter-spacing:.5em;color:var(--green)}
 #level-nav {display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 #level-nav button {min-width:0;padding:8px;font-size:16px}
@@ -195,8 +195,8 @@ progress { width:100%; height:7px; border:0; background:#dce3d4; display:block; 
 
 .paint-cell {position:relative;container-type:inline-size;aspect-ratio:1;border:1px solid #aabbb8;border-radius:4px;overflow:hidden;background:repeating-linear-gradient(to bottom,#bac7c4 0 5px,transparent 5px 9px) center / 1px 100% no-repeat,repeating-linear-gradient(to right,#bac7c4 0 5px,transparent 5px 9px) center / 100% 1px no-repeat,#fffdf8}
 .paint-cell img {border:0;border-radius:0;background:transparent;margin:0}
-.paint-cell canvas.correct-glyph {display:none;position:absolute;inset:0;width:100%;height:100%;background:transparent;border:0;border-radius:0;margin:0;pointer-events:none}
-.paint-cell.solved canvas.correct-glyph {display:block}
+.paint-cell .correct-glyph {display:none;position:absolute;inset:0;width:100%;height:100%;background:transparent;border:0;border-radius:0;margin:0;pointer-events:none}
+.paint-cell.solved .correct-glyph {display:block}
 #word-entry {width:min(100%,440px);height:64px;padding:10px 18px;text-align:center;border:2px solid #91b3b7;border-radius:14px;background:#fffef8;color:#28434a;font-size:26px;outline:none}
 #word-entry::placeholder {font-size:18px;color:#819394}
 #word-entry:focus {border-color:#306b79;box-shadow:0 0 0 4px #306b7920}
@@ -204,7 +204,7 @@ progress { width:100%; height:7px; border:0; background:#dce3d4; display:block; 
 #word-entry.correct {border-color:#306b79;background:#e1eeed}
 .home-brand h1 {font-size:inherit;margin:0}
 #help-demo .paint-cell {flex:0 1 160px}
-#help-demo canvas {display:block;width:100%;height:100%;margin:0;border:0;border-radius:0;background:transparent}
+#help-demo img {display:block;width:100%;height:100%;margin:0;border:0;border-radius:0;background:transparent}
 #help-demo .demo-strokes {position:absolute;inset:0;opacity:0}
 #help-dialog .help-word {opacity:0}
 #help-dialog.demo-ready .demo-strokes,#help-dialog.demo-ready .help-word {animation:help-reveal 5s ease-in-out infinite}

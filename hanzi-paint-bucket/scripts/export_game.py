@@ -6,10 +6,12 @@ import json
 from pathlib import Path
 import secrets
 import sqlite3
+import zlib
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.exceptions import InvalidTag
 
 from preview_bank import mask_png
+from render_game_art import render_game_art
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT.parent
@@ -17,7 +19,7 @@ PRIVATE = REPO.parent / 'puzzle-private/hanzi-paint-bucket'
 TUTORIAL = '回答'
 
 
-def export(banks, output):
+def export(banks, output, renderer=render_game_art):
     selected = {}
     for bank in banks:
         bank = bank.resolve()
@@ -38,10 +40,10 @@ def export(banks, output):
         try:
             old_cipher = AESGCM(base64.b64decode(previous['encryption']['key'], validate=True))
             unchanged = len(old) == len(ordered) and all(
-                item.get('images') == images and old_cipher.decrypt(
+                item.get('images') == images and previous_word(old_cipher.decrypt(
                     base64.b64decode(item['sealed']['iv'], validate=True),
                     base64.b64decode(item['sealed']['ciphertext'], validate=True),
-                    item['id'].encode()) == word.encode()
+                    item['id'].encode()), previous['version']) == word
                 for item, (word, (_, images)) in zip(old, ordered)
             )
         except (KeyError, ValueError, TypeError, InvalidTag):
@@ -49,6 +51,7 @@ def export(banks, output):
         if not unchanged:
             previous = None
     records = []
+    art = renderer([word for word, _ in ordered] + [TUTORIAL])
     key = AESGCM.generate_key(bit_length=256)
     cipher = AESGCM(key)
     encode = lambda raw: base64.b64encode(raw).decode('ascii')
@@ -56,16 +59,23 @@ def export(banks, output):
         prior = previous['puzzles'][index] if previous else {}
         public_id = prior.get('id', secrets.token_hex(16))
         iv = secrets.token_bytes(12)
-        encrypted = cipher.encrypt(iv, word.encode(), public_id.encode())
+        content = json.dumps({'word': word, 'strokes': [art[c]['strokes'] for c in word]}, ensure_ascii=False, separators=(',', ':')).encode()
+        encrypted = cipher.encrypt(iv, zlib.compress(content, 9), public_id.encode())
         records.append({'id': public_id, 'images': images,
                         'sealed': {'iv': encode(iv), 'ciphertext': encode(encrypted)}})
     if not records:
         raise ValueError('Empty bank')
-    payload = {'version': 'paint-v3', 'revision': previous['revision'] if previous else secrets.token_hex(8),
+    payload = {'version': 'paint-v4', 'revision': previous['revision'] if previous else secrets.token_hex(8),
                'encryption': {'algorithm': 'AES-GCM', 'key': encode(key)}, 'puzzles': records}
     output.mkdir(parents=True, exist_ok=True)
     (output / 'levels.json').write_text(json.dumps(payload, separators=(',', ':')), encoding='utf-8')
+    (output / 'tutorial.json').write_text(json.dumps({'paint':[art[c]['paint'] for c in TUTORIAL], 'strokes':[art[c]['strokes'] for c in TUTORIAL]}, separators=(',', ':')), encoding='utf-8')
     print(f'Exported {len(records)} encrypted levels; tutorial excluded; progress revision {"preserved" if previous else "new"}.')
+
+
+def previous_word(content, version):
+    text = (zlib.decompress(content) if version == 'paint-v4' else content).decode()
+    return json.loads(text)['word'] if version == 'paint-v4' else text
 
 
 if __name__ == '__main__':
@@ -73,3 +83,5 @@ if __name__ == '__main__':
     parser.add_argument('--bank', type=Path, action='append')
     args = parser.parse_args()
     export(args.bank or [PRIVATE / 'hsk-combined-editorial-v12-bank/bank.sqlite'], ROOT / 'public')
+    from build_game_assets import build_game_assets
+    build_game_assets()

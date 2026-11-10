@@ -1,17 +1,16 @@
-import {analyzeGlyph} from './glyph.mjs';
-import {decryptWord} from './decrypt.mjs';
-import {loadResource} from './load-resource.mjs';
+import {decryptPuzzle} from './decrypt.mjs?v=compact-2';
+import {loadResource, loadJsonResource} from './load-resource.mjs?v=compact-1';
 import {validateProgress, encodeSave, decodeSave, nextLevel} from './state.mjs';
 const $ = id => document.getElementById(id);
 const KEY = 'hanzi-paint-bucket.progress.v1';
 let bank, passed = new Set(), current = 0, page = 0, pageSize = 30, routeTicket = 0;
 let timer, composing = false, checking = false, revealed = false, loading;
 let prepared = false, preparing;
-const resourceProgress = {data:0, font:0};
+const resourceProgress = {data:0, tutorial:0};
 function updateLoading(kind, value) {
   resourceProgress[kind] = value;
   if (!preparing) return;
-  const label = `加载中 ${Math.min(99, Math.floor((resourceProgress.data + resourceProgress.font) * 50))}%`;
+  const label = `加载中 ${Math.min(99, Math.floor(resourceProgress.data * 95 + resourceProgress.tutorial * 5))}%`;
   $('start-label').textContent = label;
   if (!$('levels').hidden) $('levels-status').textContent = label;
 }
@@ -19,7 +18,7 @@ async function prepareGame() {
   if (prepared) return;
   if (!preparing) {
     $('start-game').disabled = true; $('start-label').textContent = '加载中…';
-    preparing = Promise.all([loadBank(), ensureFont()]).then(()=>{
+    preparing = Promise.all([loadBank(), loadTutorial()]).then(()=>{
       prepared = true; $('start-label').textContent = '开始游戏';
     }).catch(error=>{
       $('start-label').textContent = '加载失败，点击重试'; throw error;
@@ -47,9 +46,8 @@ async function persist() {
 async function loadBank() {
   if (bank) return bank;
   if (!loading) loading = (async () => {
-    const bytes = await loadResource('./levels.json', value=>updateLoading('data', value));
-    const data = JSON.parse(new TextDecoder().decode(bytes));
-    if (data.version !== 'paint-v3' || !data.puzzles?.length) throw new Error('题目格式无效');
+    const data = await loadJsonResource('./levels.json.gz', './levels.json', value=>updateLoading('data', value));
+    if (data.version !== 'paint-v4' || !data.puzzles?.length) throw new Error('题目格式无效');
     bank = data; mergeStored(); return bank;
   })().finally(()=>{loading = null;});
   return loading;
@@ -98,19 +96,15 @@ function drawLevels() {
   $('page-previous').disabled = page===0;
   $('page-next').disabled = (page+1)*pageSize >= bank.puzzles.length;
 }
-function showWord(word) {
-  Array.from(word).forEach((char,i)=>{
+function showWord(result) {
+  Array.from(result.word).forEach((char,i)=>{
     const cell=$('board').children[i];
     const glyph=cell.querySelector('.correct-glyph');
-    // Use the exact clue renderer's font metrics so strokes align with the paint.
-    const {canvas,ctx,size}=analyzeGlyph(char,'PaintTutorial',250);
-    ctx.globalCompositeOperation='source-in';ctx.fillStyle='#28434a';ctx.fillRect(0,0,size,size);
-    const overlay=glyph.getContext('2d');overlay.clearRect(0,0,480,480);overlay.drawImage(canvas,0,0);
-    glyph.setAttribute('aria-label',char);cell.classList.add('solved');
+    glyph.src=result.strokes[i];glyph.alt=char;cell.classList.add('solved');
   });
 }
 function hideWord() {
-  for(const cell of $('board').children){cell.classList.remove('solved');const glyph=cell.querySelector('.correct-glyph');glyph.getContext('2d').clearRect(0,0,480,480);glyph.removeAttribute('aria-label');}
+  for(const cell of $('board').children){cell.classList.remove('solved');const glyph=cell.querySelector('.correct-glyph');glyph.removeAttribute('src');glyph.alt='';}
 }
 function drawPlay(n) {
   current=n; const puzzle=bank.puzzles[n-1];
@@ -119,7 +113,7 @@ function drawPlay(n) {
   for(let i=0;i<puzzle.images.length;i++) {
     const cell=document.createElement('div'); cell.className='paint-cell';
     const img=document.createElement('img'); img.src=puzzle.images[i]; img.alt=`第 ${i+1} 个字的涂色`; img.draggable=false;
-    const glyph=document.createElement('canvas');glyph.className='correct-glyph';glyph.width=glyph.height=480;glyph.setAttribute('role','img');
+    const glyph=document.createElement('img');glyph.className='correct-glyph';glyph.alt='';
     cell.append(img,glyph); $('board').append(cell);
   }
   $('previous').disabled=n===1; $('review-next').disabled=n>=unlocked();
@@ -146,13 +140,13 @@ $('puzzle-form').addEventListener('submit', async event => {
   if(Array.from(word).length!==puzzle.images.length||!/^\p{Script=Han}+$/u.test(word)) {$('feedback').textContent=`请输入 ${puzzle.images.length} 字词语`;$('word-entry').className='wrong';return;}
   checking=true; $('submit').disabled=true;
   try {
-    const correct=word===await decryptWord(puzzle,bank.encryption);
+    const result=await decryptPuzzle(puzzle,bank.encryption), correct=word===result.word;
     if(ticket!==routeTicket)return;
     // If the player edits while decrypting, ignore the stale check.
     if($('word-entry').value.trim()!==word)return;
     if(!correct){$('feedback').textContent='再想一想';$('word-entry').className='wrong';return;}
     passed.add(current); await persist(); if(ticket!==routeTicket)return;
-    $('word-entry').readOnly=true; $('word-entry').className='correct';showWord(word);
+    $('word-entry').readOnly=true; $('word-entry').className='correct';showWord(result);
     $('board').className='paint-board correct'; $('feedback').textContent='回答正确！';
     $('submit').hidden=true; $('next').hidden=false;
     timer=setTimeout(()=>{const next=nextLevel(passed,current,bank.puzzles.length);navigate(next?'play/'+next:'complete',true);},900);
@@ -179,9 +173,9 @@ $('reveal').onclick=async()=>{
   const ticket=routeTicket;
   $('reveal').disabled=true;checking=true;$('submit').disabled=true;
   try {
-    const word=await decryptWord(bank.puzzles[current-1],bank.encryption);
+    const result=await decryptPuzzle(bank.puzzles[current-1],bank.encryption);
     if(ticket!==routeTicket)return;
-    showWord(word);$('word-entry').value='';$('word-entry').readOnly=true;
+    showWord(result);$('word-entry').value='';$('word-entry').readOnly=true;
     revealed=true;$('reveal').disabled=false;$('reveal').textContent='隐藏答案';$('submit').style.visibility='hidden';
   } catch {if(ticket===routeTicket)$('feedback').textContent='暂时无法查看，请重试';}
   finally {if(ticket===routeTicket){checking=false;$('reveal').disabled=false;$('submit').disabled=false;}}
@@ -198,35 +192,29 @@ $('save-import').onclick=async()=>{
   try {await loadBank();const value=await decodeSave($('save-code').value,bank);value.passed.forEach(n=>passed.add(n));await persist();$('save-status').textContent='存档已合并';render();}
   catch(error){$('save-status').textContent=error.message;}
 };
-let fontReady;
-function ensureFont() {
-  fontReady ||= loadResource('./fonts/HarmonyOS_Sans_SC_Thin.woff2', value=>updateLoading('font', value))
-    .then(bytes=>new FontFace('PaintTutorial',bytes,{weight:'250'}).load())
-    .then(face=>{document.fonts.add(face);return face;})
-    .catch(error=>{fontReady=null;throw error;});
-  return fontReady;
+let tutorialReady;
+function loadTutorial() {
+  tutorialReady ||= loadResource('./tutorial.json', value=>updateLoading('tutorial', value))
+    .then(bytes=>JSON.parse(new TextDecoder().decode(bytes)))
+    .catch(error=>{tutorialReady=null;throw error;});
+  return tutorialReady;
 }
 async function helpDemo() {
   $('help-status').textContent='加载中…';
   try {
-    await ensureFont();
+    const tutorial=await loadTutorial();
     if (!$('help-dialog').open) return;
     $('help-demo').replaceChildren();
     $('help-dialog').classList.remove('demo-ready');
-    for(const char of '回答') {
-      const {canvas,ctx,labels,size}=analyzeGlyph(char,'PaintTutorial',250), result=ctx.createImageData(size,size);
+    for(let i=0;i<2;i++) {
       const cell=document.createElement('div');cell.className='paint-cell';
-      const strokes=document.createElement('canvas');strokes.width=strokes.height=size;strokes.className='demo-strokes';
-      const overlay=strokes.getContext('2d');overlay.drawImage(canvas,0,0);
-      overlay.globalCompositeOperation='source-in';overlay.fillStyle='#28434a';overlay.fillRect(0,0,size,size);
-      for(let i=0;i<labels.length;i++) {
-        if(labels[i]>0) result.data.set([239,182,65,255],i*4);
-      }
-      ctx.putImageData(result,0,0);cell.append(canvas,strokes);$('help-demo').append(cell);
+      const paint=document.createElement('img');paint.src=tutorial.paint[i];paint.alt='';
+      const strokes=document.createElement('img');strokes.src=tutorial.strokes[i];strokes.alt='';strokes.className='demo-strokes';
+      cell.append(paint,strokes);$('help-demo').append(cell);
     }
     $('help-dialog').classList.add('demo-ready');
     $('help-status').textContent='';
-  }catch{$('help-status').textContent='示例字体加载失败，请重新打开帮助';}
+  }catch{$('help-status').textContent='示例加载失败，请重新打开帮助';}
 }
 $('help-open').onclick=()=>{$('help-dialog').showModal();helpDemo();};
 $('help-dialog').addEventListener('close',()=>{$('help-dialog').classList.remove('demo-ready');$('help-demo').replaceChildren();});

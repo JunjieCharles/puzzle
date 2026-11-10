@@ -45,3 +45,10 @@ python -X utf8 hanzi-paint-bucket/scripts/specimen.py --chars $experimentChars
 ```
 
 输出默认位于仓库外 `../puzzle-private/hanzi-paint-bucket/`；`--output` 可指定其他仓库外目录。使用项目附带的 HarmonyOS Sans SC Thin。截图包含字形与填色对应关系，因此不得复制回仓库或公开目录。
+
+
+## 加载资源优化
+
+游戏不再下载字体。导出时使用原始字体生成笔画 SVG，与答案一起压缩并加密；浏览器仅在当前关卡内存解密显示。教学图为用户指定的独立示例。gzip 题库约 507 KB，另有小型教学图；加载完成后才允许开始，保留已有进度。
+
+导出命令自动重建上述资源；仅重建 gzip 可运行 `python -X utf8 hanzi-paint-bucket/scripts/build_game_assets.py`。遵守附带字体许可，不发布裁剪或修改后的字体；原 TTF 仅用于本地实验、分析与生成。游戏需要支持 Web Crypto 与 DecompressionStream 的现代浏览器。

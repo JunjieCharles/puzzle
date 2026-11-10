@@ -15,12 +15,17 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from export_game import export, TUTORIAL
+from preview_bank import mask_png
 spec = importlib.util.spec_from_file_location('paint_audit', ROOT.parent / 'word-kanji/scripts/audit_public.py')
 audit = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(audit)
 
 
 class ExportTests(unittest.TestCase):
+    @staticmethod
+    def synthetic_art(words):
+        image = mask_png(zlib.compress(b'\xff'*(480*480//8)))
+        return {c:{'paint':image,'strokes':image} for word in words for c in word}
     def test_whitelist_checks_and_tutorial_exclusion(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -34,7 +39,7 @@ class ExportTests(unittest.TestCase):
                     for c in word: db.execute('INSERT INTO glyphs VALUES (?,?)',(c,zlib.compress(b'\xff'*(480*480//8))))
                 db.execute('INSERT INTO comparison_words VALUES (?)',('丙丁',))
             db.close()
-            with contextlib.redirect_stdout(io.StringIO()): export([bank],root/'out')
+            with contextlib.redirect_stdout(io.StringIO()): export([bank],root/'out',self.synthetic_art)
             raw=(root/'out/levels.json').read_text(encoding='utf-8')
             data=json.loads(raw)
             self.assertEqual(len(data['puzzles']),1)
@@ -43,9 +48,11 @@ class ExportTests(unittest.TestCase):
             self.assertEqual(set(item),{'id','images','sealed'})
             self.assertNotIn('甲乙',raw)
             cipher=AESGCM(base64.b64decode(data['encryption']['key']))
-            self.assertEqual(cipher.decrypt(base64.b64decode(item['sealed']['iv']),base64.b64decode(item['sealed']['ciphertext']),item['id'].encode()).decode(),'甲乙')
+            content=json.loads(zlib.decompress(cipher.decrypt(base64.b64decode(item['sealed']['iv']),base64.b64decode(item['sealed']['ciphertext']),item['id'].encode())))
+            self.assertEqual(content['word'],'甲乙')
+            self.assertEqual(len(content['strokes']),2)
             self.assertFalse((root/'out/vocabulary.json').exists())
-            with contextlib.redirect_stdout(io.StringIO()): export([bank],root/'out')
+            with contextlib.redirect_stdout(io.StringIO()): export([bank],root/'out',self.synthetic_art)
             again=json.loads((root/'out/levels.json').read_text(encoding='utf-8'))
             self.assertEqual(again['revision'],data['revision'])
             self.assertEqual(again['puzzles'][0]['id'],item['id'])

@@ -1,5 +1,6 @@
 """Add only the paint game's reviewed public assets to a Pages artifact."""
 import argparse
+import gzip
 from pathlib import Path
 import shutil
 import sys
@@ -9,8 +10,8 @@ sys.path.insert(0, str(ROOT.parent / 'word-kanji/scripts'))
 from audit_public import inspect_file
 
 ASSETS = ('index.html', 'style.css', 'bucket.svg', 'game.mjs', 'decrypt.mjs', 'load-resource.mjs',
-          'state.mjs', 'glyph.mjs', 'fill.mjs', 'levels.json',
-          'fonts/HarmonyOS_Sans_SC_Thin.woff2', 'fonts/LICENSE-HarmonyOS-Sans.txt')
+          'state.mjs', 'levels.json', 'levels.json.gz', 'tutorial.json',
+          'fonts/LICENSE-HarmonyOS-Sans.txt')
 
 
 def package_site(output, base_path=''):
@@ -20,6 +21,8 @@ def package_site(output, base_path=''):
     target = Path(output).resolve() / (Path('hanzi-paint-bucket') if base_path else Path('puzzle/hanzi-paint-bucket'))
     if target.exists():
         raise ValueError('Refusing to overwrite an existing project directory')
+    if gzip.decompress((ROOT / 'public/levels.json.gz').read_bytes()) != (ROOT / 'public/levels.json').read_bytes():
+        raise ValueError('Compressed bank is stale; run build_game_assets.py')
     for name in ASSETS:
         source = ROOT / 'public' / name
         if source.is_symlink() or not source.is_file() or inspect_file('hanzi-paint-bucket/public/' + name, source.read_bytes()):

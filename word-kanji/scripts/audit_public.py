@@ -116,6 +116,19 @@ def inspect_two_campaign(value):
 
 def inspect_file(name, payload):
     path = Path(name)
+    if path.suffix == '.gz':
+        import gzip
+        import io
+        if name.replace('\\', '/') != 'hanzi-paint-bucket/public/levels.json.gz':
+            return ['unreviewed compressed artifact']
+        try:
+            with gzip.GzipFile(fileobj=io.BytesIO(payload)) as stream:
+                decoded = stream.read(16 * 1024 * 1024 + 1)
+            if len(decoded) > 16 * 1024 * 1024:
+                return ['oversized compressed bank']
+            return inspect_file(name[:-3], decoded)
+        except (OSError, EOFError, ValueError):
+            return ['invalid compressed bank']
     if path.name in {"contact-sheet.png", "private-report.json"}:
         return [f"private experiment artifact: {name}"]
     if (path.suffix in {".sqlite", ".db", ".bundle", ".pyc"}
@@ -154,12 +167,12 @@ def inspect_paint_campaign(value):
     import struct
     if not isinstance(value, dict):
         return ['invalid paint envelope']
-    encrypted = value.get('version') in {'paint-v2', 'paint-v3'}
-    legacy_check = value.get('version') != 'paint-v3'
+    encrypted = value.get('version') in {'paint-v2', 'paint-v3', 'paint-v4'}
+    legacy_check = value.get('version') in {'paint-v1', 'paint-v2'}
     fields = {'version', 'revision', 'puzzles'} | ({'encryption'} if encrypted else set())
     if set(value) != fields:
         return ['invalid paint envelope']
-    if value['version'] not in {'paint-v1', 'paint-v2', 'paint-v3'} or not re.fullmatch(r'[a-f0-9]{16}', str(value['revision'])):
+    if value['version'] not in {'paint-v1', 'paint-v2', 'paint-v3', 'paint-v4'} or not re.fullmatch(r'[a-f0-9]{16}', str(value['revision'])):
         return ['invalid paint version']
     if encrypted:
         try:
@@ -178,7 +191,8 @@ def inspect_paint_campaign(value):
         if encrypted:
             try:
                 sealed = record['sealed']
-                if set(sealed) != {'iv', 'ciphertext'} or len(base64.b64decode(sealed['iv'], validate=True)) != 12 or not 22 <= len(base64.b64decode(sealed['ciphertext'], validate=True)) <= 32:
+                maximum = 200000 if value['version'] == 'paint-v4' else 32
+                if set(sealed) != {'iv', 'ciphertext'} or len(base64.b64decode(sealed['iv'], validate=True)) != 12 or not 22 <= len(base64.b64decode(sealed['ciphertext'], validate=True)) <= maximum:
                     raise ValueError()
             except (ValueError, TypeError, KeyError):
                 errors.append('invalid paint ciphertext')

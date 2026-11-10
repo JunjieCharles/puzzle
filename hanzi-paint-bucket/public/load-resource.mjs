@@ -24,3 +24,14 @@ export async function loadResource(url, onProgress = () => {}, timeoutMs = 45000
     throw error;
   } finally {clearTimeout(timer);}
 }
+
+export async function loadJsonResource(compressedUrl, fallbackUrl, onProgress) {
+  if (typeof DecompressionStream === 'undefined') {
+    return JSON.parse(new TextDecoder().decode(await loadResource(fallbackUrl, onProgress)));
+  }
+  const bytes = await loadResource(compressedUrl, onProgress);
+  // Hosts may set Content-Encoding: gzip, in which case fetch has already decoded it.
+  if (bytes[0] !== 0x1f || bytes[1] !== 0x8b) return JSON.parse(new TextDecoder().decode(bytes));
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return JSON.parse(await new Response(stream).text());
+}
