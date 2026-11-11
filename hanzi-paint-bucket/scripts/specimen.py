@@ -36,7 +36,7 @@ def glyph_layers(char, path, side=480):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--chars', required=True)
-    parser.add_argument('--harmony', type=Path, default=REPO/'hanzi-paint-bucket/public/fonts/HarmonyOS_Sans_SC_Thin.ttf')
+    parser.add_argument('--font', type=Path, default=REPO/'hanzi-paint-bucket/public/fonts/NotoSansSC-Thin.ttf')
     parser.add_argument('--output', type=Path, default=REPO.parent / 'puzzle-private' / 'hanzi-paint-bucket')
     args = parser.parse_args()
     output = args.output.resolve()
@@ -45,7 +45,7 @@ def main():
     chars = list(dict.fromkeys(c for c in args.chars if not c.isspace()))
     if not 1 <= len(chars) <= 10:
         parser.error('Provide 1–10 distinct characters.')
-    families = [('HarmonyOS Sans SC', args.harmony)]
+    families = [('Noto Sans SC', args.font)]
     for _, path in families:
         with TTFont(path) as font:
             if any(ord(c) not in font.getBestCmap() for c in chars):
@@ -56,7 +56,7 @@ def main():
     width = max(1100, 270 + len(chars)*170)
     sheet = Image.new('RGB', (width, 170+330*len(families)), '#f4f2ed')
     draw = ImageDraw.Draw(sheet)
-    draw.text((40, 28), '汉字油漆桶 / HarmonyOS Sans SC Thin', font=title, fill='#253344')
+    draw.text((40, 28), '汉字油漆桶 / Noto Sans SC Thin', font=title, fill='#253344')
     draw.text((42, 88), '同字号 · 真实字体轮廓 · 只填闭合空白区域', font=small, fill='#62707a')
     for row, (name, path) in enumerate(families):
         y = 145 + row*330

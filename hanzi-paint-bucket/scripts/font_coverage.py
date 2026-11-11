@@ -4,7 +4,7 @@ from pathlib import Path
 from fontTools.ttLib import TTFont
 
 ROOT = Path(__file__).resolve().parents[1]
-with TTFont(ROOT/'public/fonts/HarmonyOS_Sans_SC_Thin.ttf') as font:
+with TTFont(ROOT/'public/fonts/NotoSansSC-Thin.ttf') as font:
     points = sorted(font.getBestCmap())
 ranges = []
 for point in points:

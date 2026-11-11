@@ -19,21 +19,21 @@ def render_game_art(words):
             page.add_script_tag(content='\n'.join(line for line in source.splitlines() if not line.startswith('import ')).replace('export function', 'function'))
             measurements = page.evaluate('''async ({font,chars})=>{
               const data=Uint8Array.from(atob(font),c=>c.charCodeAt(0));
-              const face=await new FontFace('Original',data,{weight:'250'}).load();document.fonts.add(face);
+              const face=await new FontFace('Original',data,{weight:'200'}).load();document.fonts.add(face);
               return Object.fromEntries(chars.map(char=>{
-                const ctx=document.createElement('canvas').getContext('2d');ctx.font='250 400px "Original"';
+                const ctx=document.createElement('canvas').getContext('2d');ctx.font='200 400px "Original"';
                 const m=ctx.measureText(char),x=(480-m.actualBoundingBoxRight+m.actualBoundingBoxLeft)/2,y=(480+m.actualBoundingBoxAscent-m.actualBoundingBoxDescent)/2;
                 let paint;
                 if ('回答'.includes(char)) {
-                  const rendered=analyzeGlyph(char,'Original',250), pixels=rendered.ctx.createImageData(480,480);
+                  const rendered=analyzeGlyph(char,'Original',200), pixels=rendered.ctx.createImageData(480,480);
                   for(let i=0;i<rendered.labels.length;i++)if(rendered.labels[i]>0)pixels.data.set([239,182,65,255],i*4);
                   rendered.ctx.putImageData(pixels,0,0);paint=rendered.canvas.toDataURL('image/png');
                 }
                 return [char,{x,y,paint}];
               }));
-            }''', {'font':base64.b64encode((PUBLIC / 'fonts/HarmonyOS_Sans_SC_Thin.ttf').read_bytes()).decode(), 'chars':chars})
+            }''', {'font':base64.b64encode((PUBLIC / 'fonts/NotoSansSC-Thin.ttf').read_bytes()).decode(), 'chars':chars})
             result = {}
-            with TTFont(PUBLIC / 'fonts/HarmonyOS_Sans_SC_Thin.ttf') as font:
+            with TTFont(PUBLIC / 'fonts/NotoSansSC-Thin.ttf') as font:
                 cmap, glyphs = font.getBestCmap(), font.getGlyphSet()
                 scale = 400 / font['head'].unitsPerEm
                 for char in chars:

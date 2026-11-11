@@ -35,8 +35,8 @@ def implied_ink(ink,paint):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--analysis',type=Path,default=REPO.parent/'puzzle-private/hanzi-paint-bucket/extended-analysis/analysis.sqlite')
-    parser.add_argument('--output',type=Path,default=REPO.parent/'puzzle-private/hanzi-paint-bucket/stroke-analysis')
+    parser.add_argument('--analysis',type=Path,default=REPO.parent/'puzzle-private/hanzi-paint-bucket/noto-extended-analysis/analysis.sqlite')
+    parser.add_argument('--output',type=Path,default=REPO.parent/'puzzle-private/hanzi-paint-bucket/noto-stroke-analysis')
     args=parser.parse_args();out=args.output.resolve()
     if out==REPO or REPO in out.parents:parser.error('Output must be outside repository')
     out.mkdir(parents=True,exist_ok=True)
@@ -64,7 +64,7 @@ def main():
                 batch=page.evaluate('''async chars=>{
                   const {analyzeGlyph}=await import('./app.js');
                   const pack=values=>{const p=new Uint8Array(values.length/8);for(let i=0;i<values.length;i++)if(values[i])p[i>>3]|=1<<(7-(i&7));return btoa(String.fromCharCode(...p));};
-                  return chars.map(c=>{const {alpha,labels}=analyzeGlyph(c,'PaintFont0',250);return {ink:pack(alpha.map(a=>a>=128)),paint:pack(labels.map(a=>a>0))};});
+                  return chars.map(c=>{const {alpha,labels}=analyzeGlyph(c,'PaintFont0',200);return {ink:pack(alpha.map(a=>a>=128)),paint:pack(labels.map(a=>a>0))};});
                 }''',chars[start:start+32])
                 for char,row in zip(chars[start:start+32],batch):
                     raw=base64.b64decode(row['ink']);paint_raw=base64.b64decode(row['paint'])
@@ -76,7 +76,7 @@ def main():
                 if start%256==0:print(f'Measured {min(start+32,len(chars))}/{len(chars)} glyphs',flush=True)
             browser.close()
         summary={'method':METHOD,'characters':len(chars),'render':metadata['render'],
-            'font_sha256':hashlib.sha256((ROOT/'public/fonts/HarmonyOS_Sans_SC_Thin.ttf').read_bytes()).hexdigest(),
+            'font_sha256':hashlib.sha256((ROOT/'public/fonts/NotoSansSC-Thin.ttf').read_bytes()).hexdigest(),
             'hsk_sha256':hashlib.sha256(lexicon.read_bytes()).hexdigest(),'browser_version':metadata['browser_version'],
             'method_details':'medial axis rng=0; facing iff distance to paint <= local ink radius + 1 raster px; ink assigned to nearest skeleton section; binary alpha>=128',
             'word_aggregation':'sum(implied ink pixels) / sum(all ink pixels)'}

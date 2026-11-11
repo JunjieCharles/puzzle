@@ -25,7 +25,7 @@ POPCOUNT = np.array([i.bit_count() for i in range(256)], dtype=np.uint8)
 
 def font_manifest(chars):
     """Record the local Thin files used by this Windows analysis environment."""
-    paths = {'HarmonyOS Sans SC':ROOT/'public/fonts/HarmonyOS_Sans_SC_Thin.ttf'}
+    paths = {'Noto Sans SC':ROOT/'public/fonts/NotoSansSC-Thin.ttf'}
     result = {}
     for name,path in paths.items():
         with TTFont(path) as font:
@@ -108,7 +108,7 @@ def main():
     parser.add_argument('--scope', choices=['hsk','extended'], default='extended')
     parser.add_argument('--extended-lexicon', type=Path, default=REPO/'word-kanji/public/endless-lexicon.json')
     parser.add_argument('--skip-similarity', action='store_true')
-    parser.add_argument('--output', type=Path, default=REPO.parent/'puzzle-private/hanzi-paint-bucket/extended-analysis')
+    parser.add_argument('--output', type=Path, default=REPO.parent/'puzzle-private/hanzi-paint-bucket/noto-extended-analysis')
     args = parser.parse_args()
     output = private_path(args.output)
     output.mkdir(parents=True, exist_ok=True)
@@ -155,11 +155,11 @@ def main():
             page.goto(f'http://127.0.0.1:{server.server_port}/puzzle/hanzi-paint-bucket/lab.html')
             page.wait_for_function("document.querySelectorAll('.status').length === 1 && [...document.querySelectorAll('.status')].every(x => !x.textContent.includes('…'))")
             if page.locator('.status.error').count():
-                raise RuntimeError('HarmonyOS Sans SC Thin must load; no fallback is allowed')
-            for font_index, font_name in enumerate(['HarmonyOS Sans SC']):
+                raise RuntimeError('Noto Sans SC Thin must load; no fallback is allowed')
+            for font_index, font_name in enumerate(['Noto Sans SC']):
                 print('Rendering', font_name, flush=True)
                 masks, valid_chars, areas, region_counts = [], [], [], []
-                with TTFont(ROOT/'public/fonts/HarmonyOS_Sans_SC_Thin.ttf') as font:
+                with TTFont(ROOT/'public/fonts/NotoSansSC-Thin.ttf') as font:
                     cmap = font.getBestCmap()
                 supported = [c for c in chars if ord(c) in cmap]
                 db.executemany('INSERT INTO missing_glyphs VALUES (?,?)',((font_name,c) for c in chars if ord(c) not in cmap))
@@ -167,7 +167,7 @@ def main():
                     batch = page.evaluate('''async ({chars, fontIndex}) => {
                       const {analyzeGlyph} = await import('./app.js');
                       return chars.map(char => {
-                        const {labels,count} = analyzeGlyph(char, `PaintFont${fontIndex}`, 250);
+                        const {labels,count} = analyzeGlyph(char, `PaintFont${fontIndex}`, 200);
                         const packed = new Uint8Array(labels.length/8), areas = Array(count).fill(0);
                         let minX=480,minY=480,maxX=-1,maxY=-1;
                         for(let i=0;i<labels.length;i++) if(labels[i]>0) {

@@ -8,6 +8,93 @@ idiom=importlib.util.module_from_spec(spec);spec.loader.exec_module(idiom)
 
 
 class IdiomTests(unittest.TestCase):
+    def test_zero_to_two_rectangles_do_not_require_alignment(self):
+        import numpy as np
+        mask=np.zeros((160,160),dtype=bool)
+        self.assertTrue(idiom.has_zero_to_two_rectangular_regions(mask))
+        mask[2,2]=True
+        self.assertFalse(idiom.has_zero_to_two_rectangular_regions(mask))
+        mask[10:35,20:50]=True
+        self.assertTrue(idiom.has_zero_to_two_rectangular_regions(mask))
+        mask[110:140,100:145]=True
+        self.assertTrue(idiom.has_zero_to_two_rectangular_regions(mask))
+        self.assertFalse(idiom.is_regular_rectangle_grid(mask))
+        mask[70:75,70:75]=True
+        self.assertFalse(idiom.has_zero_to_two_rectangular_regions(mask))
+        mask[70:75,70:75]=False;mask[20:25,30:35]=False
+        self.assertFalse(idiom.has_zero_to_two_rectangular_regions(mask))
+
+    def test_few_rectangles_filter_requires_every_position(self):
+        areas={'a':100,'b':200,'x':0,'c':150}
+        simple={'a','b','x'}
+        for word in ['ab','axb','axbx']:
+            self.assertTrue(idiom.word_pattern_excluded(word,areas,set(),(),simple))
+        for word in ['ac','abc','acbx']:
+            self.assertFalse(idiom.word_pattern_excluded(word,areas,set(),(),simple))
+
+    def test_all_painted_grid_positions_excluded_across_word_lengths(self):
+        areas={'a':100,'b':200,'c':150,'d':160,'x':0,'y':0,'t':1}
+        grid={'a','b','c','d'}
+        for word in ['ab','axb','axby','xaby','abc','abcx','abcd']:
+            self.assertTrue(idiom.word_pattern_excluded(word,areas,set(),grid))
+        for word in ['abct','abtx','axxy','xxxx']:
+            self.assertFalse(idiom.all_painted_glyphs_are_grids(word,areas,grid))
+        self.assertFalse(idiom.word_pattern_excluded('abtx',areas,set(),grid))
+        self.assertTrue(idiom.word_pattern_excluded('xyab',areas,set(),set()))
+
+    def test_matrix_allows_minor_edge_slope_but_not_interior_holes(self):
+        import numpy as np
+        mask=np.zeros((160,260),dtype=bool)
+        mask[20:120,10:110]=True;mask[20:120,122:222]=True
+        mask[20:100,221]=False
+        self.assertTrue(idiom.is_regular_rectangle_grid(mask))
+        self.assertFalse(idiom.bank.is_single_solid_rectangle(mask[:,120:]))
+        mask[60,160]=False
+        self.assertFalse(idiom.is_regular_rectangle_grid(mask))
+
+    def test_rectangle_grid_requires_full_aligned_cells(self):
+        import numpy as np
+        mask=np.zeros((100,100),dtype=bool)
+        for y in (10,40):
+            for x in (10,45):mask[y:y+20,x:x+25]=True
+        self.assertTrue(idiom.is_regular_rectangle_grid(mask))
+        mask[90,90]=True
+        self.assertTrue(idiom.is_regular_rectangle_grid(mask))
+        mask[40:60,45:70]=False
+        self.assertFalse(idiom.is_regular_rectangle_grid(mask))
+        mask[40:60,50:75]=True
+        self.assertFalse(idiom.is_regular_rectangle_grid(mask))
+        mask[40:60,50:75]=False;mask[40:60,45:70]=True
+        mask[15:20,15:20]=False
+        self.assertFalse(idiom.is_regular_rectangle_grid(mask))
+        self.assertFalse(idiom.is_regular_rectangle_grid(np.zeros((100,100),dtype=bool)))
+
+    def test_rectangle_grid_allows_single_column_and_filters_grid_only_words(self):
+        import numpy as np
+        mask=np.zeros((120,120),dtype=bool)
+        for y in (10,40,70):mask[y:y+20,10:40]=True
+        self.assertTrue(idiom.is_regular_rectangle_grid(mask))
+        self.assertTrue(idiom.is_regular_rectangle_grid(mask.T))
+        areas=dict.fromkeys('abc',100)
+        self.assertTrue(idiom.word_pattern_excluded('ab',areas,set(),{'a','b'}))
+        self.assertFalse(idiom.word_pattern_excluded('ac',areas,set(),{'a','b'}))
+        self.assertTrue(idiom.word_pattern_excluded('abc',areas,set(),{'a','b','c'}))
+
+    def test_four_separated_corner_blocks_are_not_a_compact_grid(self):
+        import numpy as np
+        mask=np.zeros((160,160),dtype=bool)
+        for y in (10,110):
+            for x in (10,110):mask[y:y+25,x:x+25]=True
+        self.assertFalse(idiom.is_regular_rectangle_grid(mask))
+
+    def test_mean_paint_area_orders_mixed_lengths_and_counts_blanks(self):
+        from fractions import Fraction
+        areas={'a':100,'b':40,'c':10,'x':0}
+        scores=idiom.bank.arithmetic_scores(['ab','abc','abxx'],areas)
+        self.assertEqual(scores,{'ab':Fraction(70),'abc':Fraction(50),'abxx':Fraction(35)})
+        selected,_=idiom.select_disjoint(list(scores),scores,scope_by_length={2:2,3:2,4:4})
+        self.assertEqual(selected,['abc','abxx'])
+
     def test_word_pattern_filter_preserves_individual_characters(self):
         areas={'a':100,'b':100,'x':0,'y':0,'t':1}
         day={'a','b'}

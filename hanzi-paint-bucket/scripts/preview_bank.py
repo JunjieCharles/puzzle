@@ -16,6 +16,7 @@ ROOT=Path(__file__).resolve().parents[1]
 REPO=ROOT.parent
 PREFIX='/puzzle/hanzi-paint-bucket/preview/'
 PAGE_SIZE=12
+MAX_PAGE_SIZE=24
 
 
 def mask_png(packed,color=(239,182,65,255)):
@@ -26,6 +27,10 @@ def mask_png(packed,color=(239,182,65,255)):
 
 
 def handler_for(bank):
+    with sqlite3.connect(bank.as_uri()+'?mode=ro',uri=True) as db:
+        metadata=json.loads(db.execute("SELECT value_json FROM metadata WHERE key='build'").fetchone()[0])
+    family=metadata.get('font','HarmonyOS Sans SC')
+    font_file='NotoSansSC-Thin.ttf' if family=='Noto Sans SC' else 'HarmonyOS_Sans_SC_Thin.ttf'
     class Handler(BaseHTTPRequestHandler):
         def log_message(self,*args):
             pass
@@ -57,27 +62,31 @@ def handler_for(bank):
                 return self.send_data(200,report.read_bytes(),'text/html; charset=utf-8')
             if name=='api':
                 try:
-                    page=int(parse_qs(url.query).get('page',['1'])[0])
+                    query=parse_qs(url.query)
+                    page=int(query.get('page',['1'])[0])
+                    page_size=int(query.get('page_size',[str(PAGE_SIZE)])[0])
                 except ValueError:
                     return self.send_data(400)
+                if not 1<=page_size<=MAX_PAGE_SIZE:return self.send_data(400)
                 with sqlite3.connect(bank.as_uri()+'?mode=ro',uri=True) as db:
                     build=json.loads(db.execute("SELECT value_json FROM metadata WHERE key='build'").fetchone()[0])
                     bank_type=build.get('bank_type','hsk')
                     total=db.execute('SELECT count(*) FROM puzzles').fetchone()[0]
-                    pages=max(1,(total+PAGE_SIZE-1)//PAGE_SIZE)
+                    pages=max(1,(total+page_size-1)//page_size)
                     if not 1<=page<=pages:return self.send_data(400)
-                    rows=db.execute('SELECT ordinal,word,hsk_level,total_paint_area_px,total_ink_area,implied_ink_area,stroke_ratio FROM puzzles ORDER BY ordinal LIMIT ? OFFSET ?',(PAGE_SIZE,(page-1)*PAGE_SIZE)).fetchall()
+                    rows=db.execute('SELECT ordinal,word,hsk_level,total_paint_area_px,total_ink_area,implied_ink_area,stroke_ratio FROM puzzles ORDER BY ordinal LIMIT ? OFFSET ?',(page_size,(page-1)*page_size)).fetchall()
                     items=[]
                     for ordinal,word,level,area,ink,implied,ratio in rows:
                         images=[mask_png(db.execute('SELECT mask_zlib FROM glyphs WHERE character=?',(c,)).fetchone()[0]) for c in word]
                         hints=[mask_png(db.execute('SELECT implied_zlib FROM stroke_metrics WHERE character=?',(c,)).fetchone()[0],(32,145,137,255)) for c in word]
                         ratios=[db.execute('SELECT implied_area * 1.0 / ink_area FROM stroke_metrics WHERE character=?',(c,)).fetchone()[0] for c in word]
-                        items.append({'ordinal':ordinal,'word':word,'level':level,'area':area,'images':images,'hints':hints,'ink_area':ink,'implied_area':implied,'stroke_ratio':ratio,'character_ratios':ratios})
-                return self.send_data(200,json.dumps({'page':page,'pages':pages,'page_size':PAGE_SIZE,'total':total,'items':items,'bank_type':bank_type},ensure_ascii=False).encode(),'application/json; charset=utf-8')
+                        character_areas=[db.execute('SELECT area_px FROM glyphs WHERE character=?',(c,)).fetchone()[0] for c in word]
+                        items.append({'mean_paint_area_px':area/len(word),'character_areas':character_areas,'ordinal':ordinal,'word':word,'level':level,'area':area,'images':images,'hints':hints,'ink_area':ink,'implied_area':implied,'stroke_ratio':ratio,'character_ratios':ratios})
+                return self.send_data(200,json.dumps({'page':page,'pages':pages,'page_size':page_size,'total':total,'items':items,'bank_type':bank_type,'font':family,'difficulty_aggregation':build.get('difficulty_aggregation','')},ensure_ascii=False).encode(),'application/json; charset=utf-8')
             files={'':(ROOT/'preview/index.html','text/html; charset=utf-8'),
                    'style.css':(ROOT/'preview/style.css','text/css; charset=utf-8'),
                    'app.js':(ROOT/'preview/app.js','text/javascript; charset=utf-8'),
-                   'font.ttf':(ROOT/'public/fonts/HarmonyOS_Sans_SC_Thin.ttf','font/ttf')}
+                   'font.ttf':(ROOT/'public/fonts'/font_file,'font/ttf')}
             if name not in files:return self.send_data(404)
             path,mime=files[name];self.send_data(200,path.read_bytes(),mime)
     return Handler
@@ -91,7 +100,7 @@ def main():
     mode.add_argument('--hsk-multi',action='store_true',help='Preview HSK 3+ bank (default port 8006)')
     parser.add_argument('--port',type=int)
     args=parser.parse_args()
-    folder='hsk-multi-rectangles-bank' if args.hsk_multi else ('idiom-bank' if args.idioms else 'hsk-combined-editorial-v12-bank')
+    folder='hsk-multi-rectangles-bank' if args.hsk_multi else ('idiom-bank' if args.idioms else 'hsk-combined-editorial-v23-noto-bank')
     bank=(args.bank or REPO.parent/f'puzzle-private/hanzi-paint-bucket/{folder}/bank.sqlite').resolve()
     port=args.port if args.port is not None else (8006 if args.hsk_multi else (8005 if args.idioms else 8004))
     if bank==REPO or REPO in bank.parents or not bank.is_file():

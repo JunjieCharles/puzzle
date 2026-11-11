@@ -1,11 +1,13 @@
-import {decryptPuzzle} from './decrypt.mjs?v=compact-2';
-import {loadResource, loadJsonResource} from './load-resource.mjs?v=compact-1';
-import {validateProgress, encodeSave, decodeSave, nextLevel} from './state.mjs';
+import {decryptPuzzle} from './decrypt.mjs?v=20261111-noto-212';
+import {loadResource, loadJsonResource} from './load-resource.mjs?v=20261111-noto-212';
+import {validateProgress, encodeSave, decodeSave, nextLevel} from './state.mjs?v=20261111-noto-212';
 const $ = id => document.getElementById(id);
+const RELEASE = '20261111-noto-212';
 const KEY = 'hanzi-paint-bucket.progress.v1';
 let bank, passed = new Set(), current = 0, page = 0, pageSize = 30, routeTicket = 0;
 let timer, composing = false, checking = false, revealed = false, loading;
 let prepared = false, preparing;
+let uiFontsReady = false;
 const resourceProgress = {data:0, tutorial:0};
 function updateLoading(kind, value) {
   resourceProgress[kind] = value;
@@ -18,13 +20,24 @@ async function prepareGame() {
   if (prepared) return;
   if (!preparing) {
     $('start-game').disabled = true; $('start-label').textContent = '加载中…';
-    preparing = Promise.all([loadBank(), loadTutorial()]).then(()=>{
+    preparing = Promise.all([loadBank(), loadTutorial(), loadUiFonts()]).then(()=>{
       prepared = true; $('start-label').textContent = '开始游戏';
     }).catch(error=>{
       $('start-label').textContent = '加载失败，点击重试'; throw error;
     }).finally(()=>{preparing = null; $('start-game').disabled = false;});
   }
   return preparing;
+}
+async function loadUiFonts() {
+  if (uiFontsReady) return;
+  const faces = await Promise.all([
+    ['Regular', '400'], ['Medium', '500 900']
+  ].map(async ([name, weight]) => {
+    const bytes = await loadResource(`./fonts/NotoSansSC-UI-${name}.woff2?v=${RELEASE}`);
+    return new FontFace('Noto Sans SC', bytes, {weight}).load();
+  }));
+  faces.forEach(face => document.fonts.add(face));
+  uiFontsReady = true;
 }
 const unlocked = () => Math.min(bank.puzzles.length, passed.size + 3);
 const record = () => ({revision: bank.revision, passed: [...passed].sort((a,b)=>a-b)});
@@ -46,7 +59,7 @@ async function persist() {
 async function loadBank() {
   if (bank) return bank;
   if (!loading) loading = (async () => {
-    const data = await loadJsonResource('./levels.json.gz', './levels.json', value=>updateLoading('data', value));
+    const data = await loadJsonResource(`./levels.json.gz?v=${RELEASE}`, `./levels.json?v=${RELEASE}`, value=>updateLoading('data', value));
     if (data.version !== 'paint-v4' || !data.puzzles?.length) throw new Error('题目格式无效');
     bank = data; mergeStored(); return bank;
   })().finally(()=>{loading = null;});
@@ -194,7 +207,7 @@ $('save-import').onclick=async()=>{
 };
 let tutorialReady;
 function loadTutorial() {
-  tutorialReady ||= loadResource('./tutorial.json', value=>updateLoading('tutorial', value))
+  tutorialReady ||= loadResource(`./tutorial.json?v=${RELEASE}`, value=>updateLoading('tutorial', value))
     .then(bytes=>JSON.parse(new TextDecoder().decode(bytes)))
     .catch(error=>{tutorialReady=null;throw error;});
   return tutorialReady;

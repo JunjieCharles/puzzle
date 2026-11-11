@@ -1,7 +1,7 @@
 <!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>汉字油漆桶 · 题库预览</title><link rel="stylesheet" href="./style.css">
-<main><header><span class="eyebrow">汉字油漆桶 / 本地题库预览</span><h1>从色块，找到文字<span>。</span></h1><p id="bank-label">题目 · HarmonyOS Sans SC Thin · 简单 → 困难</p></header>
+<main><header><span class="eyebrow">汉字油漆桶 / 本地题库预览</span><h1>从色块，找到文字<span>。</span></h1><p id="bank-label">题目 · Noto Sans SC Thin · 简单 → 困难</p></header>
 <section class="toolbar"><strong id="total">正在读取题库…</strong><label><input id="answers" type="checkbox"> 在格内显示全部答案</label><form id="jump"><label for="ordinal">跳到题号</label><input id="ordinal" type="number" min="1" value="1" required><button>前往</button></form></section>
-<p class="note">各字覆盖率＝暗示笔画面积／完整笔画面积；整词取算术平均，各字等权，越高越简单、排序越靠前。悬停分数可查看各字覆盖率。<label><input id="hints" type="checkbox"> 显示暗示笔画（青色）</label></p>
+<p class="note"><span id="difficulty-note"></span><label><input id="hints" type="checkbox"> 显示暗示笔画（青色）</label></p>
 <p id="status" role="status"></p><section id="cards" aria-label="题目列表"></section>
 <nav><button id="prev">← 上一页</button><span id="page"></span><button id="next">下一页 →</button></nav>
 <footer>仅本机预览 · 不保存浏览记录或答案 · <span id="uniqueness">逐字最大 IoU >95%、最小曼哈顿位移 &lt;10px</span></footer></main><script src="./app.js" defer></script></html>

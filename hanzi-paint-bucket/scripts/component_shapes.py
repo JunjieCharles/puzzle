@@ -42,3 +42,9 @@ def structural_paint_classes(characters,component_areas,graph):
         if count==1 and contains_component(c,'开',graph):
             kai.add(c)
     return moon,kai
+
+
+def single_component_characters(characters,component_areas,graph,target):
+    """Exclude target-bearing characters with exactly one region >=25 px."""
+    return {c for c in characters if contains_component(c,target,graph)
+            and sum(a>=25 for a in component_areas[c])==1}

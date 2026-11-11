@@ -3,6 +3,8 @@ import argparse
 import base64
 from contextlib import closing
 import json
+import hashlib
+from fractions import Fraction
 from pathlib import Path
 import secrets
 import sqlite3
@@ -19,21 +21,30 @@ PRIVATE = REPO.parent / 'puzzle-private/hanzi-paint-bucket'
 TUTORIAL = '回答'
 
 
-def export(banks, output, renderer=render_game_art):
+def export(banks, output, renderer=render_game_art, reset_progress=False):
     selected = {}
     for bank in banks:
         bank = bank.resolve()
         if bank == REPO or REPO in bank.parents or not bank.is_file():
             raise ValueError('Bank must exist outside repository')
         with closing(sqlite3.connect(bank.as_uri() + '?mode=ro', uri=True)) as db:
-            for word, score in db.execute('SELECT word,stroke_ratio FROM puzzles ORDER BY ordinal'):
+            has_metadata=db.execute("SELECT 1 FROM sqlite_master WHERE name='metadata'").fetchone()
+            metadata=json.loads(db.execute("SELECT value_json FROM metadata WHERE key='build'").fetchone()[0]) if has_metadata else {}
+            if renderer is render_game_art:
+                expected=hashlib.sha256((ROOT/'public/fonts/NotoSansSC-Thin.ttf').read_bytes()).hexdigest()
+                if metadata.get('font')!='Noto Sans SC' or metadata.get('font_sha256')!=expected:
+                    raise ValueError('Bank font must match the Noto Sans SC artwork renderer')
+            area_difficulty=metadata.get('difficulty_aggregation')=='mean-paint-area-px-v1'
+            metric='total_paint_area_px' if area_difficulty else 'stroke_ratio'
+            for word, score in db.execute(f'SELECT word,{metric} FROM puzzles ORDER BY ordinal'):
+                if area_difficulty:score=Fraction(score,len(word))
                 if word == TUTORIAL or word in selected:
                     continue
                 images = [mask_png(db.execute('SELECT mask_zlib FROM glyphs WHERE character=?', (c,)).fetchone()[0]) for c in word]
                 selected[word] = (score, images)
-    ordered = sorted(selected.items(), key=lambda item: -item[1][0])
+    ordered = sorted(selected.items(), key=lambda item: (-item[1][0],item[0]))
     previous = None
-    if (output / 'levels.json').is_file():
+    if not reset_progress and (output / 'levels.json').is_file():
         previous = json.loads((output / 'levels.json').read_text(encoding='utf-8'))
         old = previous.get('puzzles', [])
         # Preserve player progress only when every clue and answer still matches in order.
@@ -81,7 +92,8 @@ def previous_word(content, version):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--bank', type=Path, action='append')
+    parser.add_argument('--reset-progress', action='store_true', help='Start a new progress revision even when the question content is unchanged')
     args = parser.parse_args()
-    export(args.bank or [PRIVATE / 'hsk-combined-editorial-v12-bank/bank.sqlite'], ROOT / 'public')
+    export(args.bank or [PRIVATE / 'hsk-combined-editorial-v23-noto-bank/bank.sqlite'], ROOT / 'public', reset_progress=args.reset_progress)
     from build_game_assets import build_game_assets
     build_game_assets()

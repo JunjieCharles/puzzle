@@ -2,7 +2,7 @@ import { analyzeGlyph } from './glyph.mjs';
 export { analyzeGlyph } from './glyph.mjs';
 import { ranges } from './font-coverage.mjs';
 const specs = [
-  { name: 'HarmonyOS Sans SC', weight: 250, source: 'url("./fonts/HarmonyOS_Sans_SC_Thin.ttf")' },
+  { name: 'Noto Sans SC', weight: 200, source: 'url("./fonts/NotoSansSC-Thin.ttf")' },
 ];
 const $ = (id) => document.getElementById(id);
 const palette = ['#efb641', '#49b9ae', '#f18d83', '#8d9ee0', '#b8ce68', '#be8cbf'];
@@ -33,7 +33,7 @@ async function render() {
     spec.grid.replaceChildren();
     if (!spec.ready || !chars.length) {
       const empty = document.createElement('p'); empty.className = 'empty';
-      empty.textContent = spec.ready ? '输入文字，看看颜色会停在哪里。' : '等待 HarmonyOS Sans SC Thin 字体加载。';
+      empty.textContent = spec.ready ? '输入文字，看看颜色会停在哪里。' : '等待 Noto Sans SC Thin 字体加载。';
       spec.grid.append(empty); continue;
     }
     for (const char of chars.slice(0, 16)) {

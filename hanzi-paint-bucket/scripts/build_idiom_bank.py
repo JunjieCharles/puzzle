@@ -20,6 +20,8 @@ from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1]
 REPO=ROOT.parent
 PRIVATE=REPO.parent/'puzzle-private/hanzi-paint-bucket'
+SINGLE_RECTANGLE_OVERRIDES=frozenset('书')
+GRID_OVERRIDES=frozenset('中央追健身者')
 
 
 def module(name):
@@ -118,10 +120,74 @@ def is_day_shaped(mask, font_size=400):
             and abs(a[2]-b[2])<=font_size*.01 and abs(a[3]-b[3])<=font_size*.01)
 
 
-def word_pattern_excluded(word, areas, day_characters):
+def is_regular_rectangle_grid(mask, font_size=400):
+    """Full aligned rectangular grid; singleton rows/columns are allowed.
+
+    Ignore regions below 25 px. Corresponding edges and successive gaps
+    may differ by at most 1% of font size; cell dimensions need not match.
+    Gaps must be <=8% of font size, excluding widely separated corner blocks.
+    Grid cells allow 99% fill with deviations confined to the outer edge band.
+    """
+    labels,count=bank.ndimage.label(mask)
+    sizes=np.bincount(labels.ravel(),minlength=count+1)
+    components=[labels==i for i in range(1,count+1) if sizes[i]>=25]
+    if not components or not all(bank.is_single_solid_rectangle(m,font_size,minimum_fill=.99) for m in components):
+        return False
+    boxes=[]
+    for m in components:
+        y,x=np.nonzero(m)
+        boxes.append((int(y.min()),int(y.max()),int(x.min()),int(x.max())))
+    tolerance=font_size*.01
+    def axis_groups(intervals):
+        groups=[];membership={}
+        for interval in sorted(set(intervals)):
+            if groups and all(abs(interval[k]-groups[-1][0][k])<=tolerance for k in (0,1)):
+                groups[-1].append(interval)
+            else:
+                groups.append([interval])
+            membership[interval]=len(groups)-1
+        gaps=[min(a for a,b in right)-max(b for a,b in left)-1
+              for left,right in zip(groups,groups[1:])]
+        if gaps and (min(gaps)<=0 or max(gaps)>font_size*.08
+                     or max(gaps)-min(gaps)>tolerance):
+            return None
+        return groups,membership
+    rows=axis_groups([(b[0],b[1]) for b in boxes])
+    cols=axis_groups([(b[2],b[3]) for b in boxes])
+    if rows is None or cols is None:
+        return False
+    cells={(rows[1][b[:2]],cols[1][b[2:]]) for b in boxes}
+    return len(cells)==len(boxes)==len(rows[0])*len(cols[0])
+
+
+def has_zero_to_two_rectangular_regions(mask, font_size=400):
+    """Blank or 1-2 rectangular regions >=25 px, without alignment constraints.
+
+    Use the matrix cell's 99% fill and edge-only tolerance. A nonempty
+    glyph containing only tiny regions is not treated as a blank glyph.
+    """
+    if not np.any(mask):
+        return True
+    labels,count=bank.ndimage.label(mask)
+    sizes=np.bincount(labels.ravel(),minlength=count+1)
+    components=[labels==i for i in range(1,count+1) if sizes[i]>=25]
+    return 1<=len(components)<=2 and all(
+        bank.is_single_solid_rectangle(m,font_size,minimum_fill=.99) for m in components)
+
+
+def all_painted_glyphs_are_grids(word, areas, grid_characters):
+    """At least two painted positions, all grids; blank positions do not count."""
+    painted=[c for c in word if areas[c]>0]
+    return len(painted)>=2 and all(c in grid_characters for c in painted)
+
+
+def word_pattern_excluded(word, areas, day_characters, grid_characters=(), few_rectangle_characters=()):
     if len(word)==4 and (all(areas[c]==0 for c in word[:2]) or all(areas[c]==0 for c in word[2:])):
         return True
-    return len(word)==2 and all(c in day_characters for c in word)
+    return ((len(word)==2 and all(c in day_characters for c in word))
+            or (len(word) in (2,3,4) and (
+                all_painted_glyphs_are_grids(word,areas,grid_characters)
+                or all(c in few_rectangle_characters for c in word))))
 
 
 def informative_count(word, glyphs, rectangles):
@@ -138,7 +204,7 @@ def font_component_exclusions(path, required, hsk_hash, font_hash, render_meta, 
     with sqlite3.connect(path.as_uri()+'?mode=ro',uri=True) as db:
         meta=json.loads(db.execute("SELECT value_json FROM metadata WHERE key='build'").fetchone()[0])
         if (meta['hsk_sha256']!=hsk_hash or meta['render']!=render_meta or meta['browser_version']!=browser_version
-            or meta.get('minimum_component_area_px')!=25 or meta['fonts']['HarmonyOS Sans SC']['source_sha256']!=font_hash):
+            or meta.get('minimum_component_area_px')!=25 or meta['fonts'][bank.FONT]['source_sha256']!=font_hash):
             raise ValueError('Six-font component analysis differs from current sources or noise rule')
         names=set(meta['font_order'])
         if names!={'Noto Sans SC','MiSans','HarmonyOS Sans SC','SimHei','Microsoft YaHei','DengXian'}:
@@ -174,7 +240,7 @@ def render(chars, glyphs, metrics, browser_version, require_metrics=False):
                 batch=page.evaluate('''async chars=>{
                   const {analyzeGlyph}=await import('./app.js');
                   const pack=values=>{const p=new Uint8Array(values.length/8);for(let i=0;i<values.length;i++)if(values[i])p[i>>3]|=1<<(7-(i&7));return btoa(String.fromCharCode(...p));};
-                  return chars.map(c=>{const {alpha,labels}=analyzeGlyph(c,'PaintFont0',250);return {ink:pack(alpha.map(a=>a>=128)),paint:pack(labels.map(a=>a>0))};});
+                  return chars.map(c=>{const {alpha,labels}=analyzeGlyph(c,'PaintFont0',200);return {ink:pack(alpha.map(a=>a>=128)),paint:pack(labels.map(a=>a>0))};});
                 }''',chars[start:start+32])
                 for char,row in zip(chars[start:start+32],batch):
                     ink_raw=base64.b64decode(row['ink']);paint_raw=base64.b64decode(row['paint'])
@@ -206,10 +272,11 @@ def main():
     mode.add_argument('--hsk-combined',action='store_true',help='HSK length 2/3/4; two informative glyphs; no blanks in length 3; lengths 2/3 share characters, length 4 separate')
     parser.add_argument('--font-component-analysis',type=Path,default=PRIVATE/'font-component-analysis/components.sqlite')
     parser.add_argument('--output',type=Path)
+    parser.add_argument('--measurement-bank',type=Path,help='Reuse measurements from a private bank with identical font/render/browser fingerprints')
     parser.add_argument('--policy',type=Path,default=PRIVATE/'vocabulary-policy.json',help='Private policy; alternate files allow isolated what-if builds')
     args=parser.parse_args();source=private_path(args.source)
     is_hsk=args.hsk_multi or args.hsk_combined
-    output=private_path(args.output or PRIVATE/('hsk-combined-editorial-v12-bank' if args.hsk_combined else 'hsk-multi-rectangles-bank' if args.hsk_multi else 'idiom-bank'))
+    output=private_path(args.output or PRIVATE/('hsk-combined-editorial-v23-noto-bank' if args.hsk_combined else 'hsk-multi-rectangles-bank' if args.hsk_multi else 'idiom-bank'))
     output.mkdir(parents=True,exist_ok=True)
     if any(output.iterdir()):parser.error('Use a new empty output directory')
     raw=source.read_bytes();entries=json.loads(raw)
@@ -225,36 +292,40 @@ def main():
         source_words={w for w in hsk if len(w) in (2,3,4)}
         universe=sorted(idioms|{w for w in hsk|broad if len(w) in (2,3,4)})
     required=set(''.join(universe))
-    font_path=ROOT/'public/fonts/HarmonyOS_Sans_SC_Thin.ttf';font_hash=hashlib.sha256(font_path.read_bytes()).hexdigest()
+    bank.FONT='Noto Sans SC'
+    font_path=ROOT/'public/fonts/NotoSansSC-Thin.ttf';font_hash=hashlib.sha256(font_path.read_bytes()).hexdigest()
     with TTFont(font_path) as font:supported={c for c in required if ord(c) in font.getBestCmap()}
-    with sqlite3.connect(PRIVATE/'extended-analysis/analysis.sqlite') as db:
-        metadata=json.loads(db.execute("SELECT value_json FROM metadata WHERE key='summary'").fetchone()[0])
-        if metadata['font_sources'][bank.FONT]['sha256']!=font_hash:raise ValueError('Cached font differs')
-        glyphs={r[1]:r for r in db.execute('SELECT * FROM characters WHERE font=?',(bank.FONT,)) if r[1] in supported}
-    with sqlite3.connect(PRIVATE/'stroke-analysis/metrics.sqlite') as db:
-        stroke_meta=json.loads(db.execute("SELECT value_json FROM metadata WHERE key='build'").fetchone()[0])
-        if (stroke_meta['font_sha256']!=font_hash or stroke_meta['browser_version']!=metadata['browser_version']
-            or stroke_meta['render']!=metadata['render']):raise ValueError('Cached strokes differ')
-        metrics={r[0]:r for r in db.execute('SELECT * FROM characters') if r[0] in supported}
-    if is_hsk and (PRIVATE/'idiom-bank/measurements.sqlite').is_file():
-        with sqlite3.connect(PRIVATE/'idiom-bank/bank.sqlite') as db:
-            cache_meta=json.loads(db.execute("SELECT value_json FROM metadata WHERE key='build'").fetchone()[0])
-        if any(cache_meta[k]!=v for k,v in {'font_sha256':font_hash,'browser_version':metadata['browser_version'],'render':metadata['render']}.items()):
-            raise ValueError('Idiom measurement cache fingerprint differs')
-        with sqlite3.connect(PRIVATE/'idiom-bank/measurements.sqlite') as db:
-            glyphs.update({r[1]:r for r in db.execute('SELECT * FROM characters') if r[1] in supported})
-            metrics.update({r[0]:r for r in db.execute('SELECT * FROM stroke_metrics') if r[0] in supported})
-    render(sorted(supported-glyphs.keys()),glyphs,metrics,metadata['browser_version'])
+    # A font switch invalidates every previous paint/stroke measurement.
+    glyphs={};metrics={}
+    metadata={'render':{'canvas':480,'font_size':400,'alpha_threshold':128,'connectivity':4}}
+    cached_browser=None
+    if args.measurement_bank:
+        cached_bank=private_path(args.measurement_bank)
+        with sqlite3.connect(cached_bank.as_uri()+'?mode=ro',uri=True) as db:
+            cached=json.loads(db.execute("SELECT value_json FROM metadata WHERE key='build'").fetchone()[0])
+        if cached['font']!=bank.FONT or cached['font_sha256']!=font_hash or cached['render']!=metadata['render']:
+            raise ValueError('Measurement cache font/render differs')
+        with sync_playwright() as p:
+            browser=p.chromium.launch(channel='msedge',headless=True)
+            cached_browser=browser.version;browser.close()
+        if cached_browser!=cached['browser_version']:raise ValueError('Measurement cache browser differs')
+        with sqlite3.connect((cached_bank.parent/'measurements.sqlite').as_uri()+'?mode=ro',uri=True) as db:
+            glyphs={r[1]:r for r in db.execute('SELECT * FROM characters WHERE font=?',(bank.FONT,)) if r[1] in supported}
+            metrics={r[0]:r for r in db.execute('SELECT * FROM stroke_metrics') if r[0] in supported}
+    metadata['browser_version']=render(sorted(supported-glyphs.keys()),glyphs,metrics,cached_browser)
     competitors=[w for w in universe if all(c in supported for c in w)]
     areas={c:r[3] for c,r in glyphs.items()}
     rectangles={c for c,r in glyphs.items() if r[3]>0 and bank.is_single_solid_rectangle(np.unpackbits(np.frombuffer(zlib.decompress(r[-1]),dtype=np.uint8)).reshape(480,480))}
-    moon_characters=set();kai_characters=set()
+    moon_characters=set();kai_characters=set();jing_characters=set()
     if args.hsk_combined:
         structural=module('component_shapes')
         graph=structural.load_components(PRIVATE/'structure-source/ids.txt')
         moon_characters,kai_characters=structural.structural_paint_classes(
             set(''.join(source_words)),{c:json.loads(r[6]) for c,r in glyphs.items()},graph)
         rectangles.update(kai_characters)
+        rectangles.update(SINGLE_RECTANGLE_OVERRIDES)
+        jing_characters=structural.single_component_characters(
+            set(''.join(source_words)),{c:json.loads(r[6]) for c,r in glyphs.items()},graph,'井')
     shaped,summary=idiom_candidates(source_words,glyphs,set() if is_hsk else rectangles)
     summary['single_rectangle_exclusion_applied']=not is_hsk
     if args.hsk_combined:
@@ -289,6 +360,11 @@ def main():
     shaped=[w for w in shaped if w not in excluded]
     summary['after_editorial_filter']=len(shaped)
     if args.hsk_combined:
+        filtered=[w for w in shaped if not set(w)&jing_characters]
+        summary.update({'jing_single_component_characters':len(jing_characters),
+            'excluded_jing_single_component_words':len(shaped)-len(filtered),
+            'after_jing_single_component_filter':len(filtered)})
+        shaped=filtered
         scoped_excluded,scoped_characters=bank.policy_module.two_character_component_exclusions(
             shaped,policy,{c:json.loads(r[6]) for c,r in glyphs.items()})
         shaped=[w for w in shaped if w not in scoped_excluded]
@@ -298,7 +374,23 @@ def main():
         day_characters={c for c in set(''.join(shaped)) if is_day_shaped(
             np.unpackbits(np.frombuffer(zlib.decompress(glyphs[c][-1]),dtype=np.uint8)).reshape(480,480))}
         day_characters.update(moon_characters)
-        filtered=[w for w in shaped if not word_pattern_excluded(w,areas,day_characters)]
+        grid_characters={c for c in set(''.join(shaped)) if is_regular_rectangle_grid(
+            np.unpackbits(np.frombuffer(zlib.decompress(glyphs[c][-1]),dtype=np.uint8)).reshape(480,480))}
+        # Explicit user classification; does not change masks or global geometry.
+        grid_characters.update((GRID_OVERRIDES|SINGLE_RECTANGLE_OVERRIDES) & set(''.join(shaped)))
+        summary.update({'regular_rectangle_grid_characters':len(grid_characters),
+            'excluded_grid_only_words':sum(all_painted_glyphs_are_grids(w,areas,grid_characters) for w in shaped),
+            'excluded_grid_only_words_by_length':dict(sorted(Counter(len(w) for w in shaped
+                if all_painted_glyphs_are_grids(w,areas,grid_characters)).items()))})
+        few_rectangle_characters={c for c in set(''.join(shaped)) if has_zero_to_two_rectangular_regions(
+            np.unpackbits(np.frombuffer(zlib.decompress(glyphs[c][-1]),dtype=np.uint8)).reshape(480,480))}
+        few_rectangle_characters.update(SINGLE_RECTANGLE_OVERRIDES & set(''.join(shaped)))
+        summary.update({'zero_to_two_rectangle_characters':len(few_rectangle_characters),
+            'excluded_zero_to_two_rectangle_words':sum(all(c in few_rectangle_characters for c in w) for w in shaped),
+            'excluded_zero_to_two_rectangle_words_additional':sum(
+                all(c in few_rectangle_characters for c in w)
+                and not word_pattern_excluded(w,areas,day_characters,grid_characters) for w in shaped)})
+        filtered=[w for w in shaped if not word_pattern_excluded(w,areas,day_characters,grid_characters,few_rectangle_characters)]
         summary.update({'excluded_word_pattern_words':len(shaped)-len(filtered),
             'after_word_pattern_filter':len(filtered),'day_shape_character_count':len(day_characters)})
         shaped=filtered
@@ -318,7 +410,7 @@ def main():
     cache.execute('CREATE TABLE stroke_metrics(character TEXT PRIMARY KEY,ink_area INTEGER,implied_area INTEGER,ratio REAL,ink_zlib BLOB,implied_zlib BLOB)')
     cache.executemany('INSERT INTO stroke_metrics VALUES (?,?,?,?,?,?)',metrics.values());cache.commit();cache.close()
     ratios={c:Fraction(r[2],r[1]) for c,r in metrics.items()}
-    scores=bank.arithmetic_scores(candidates,ratios)
+    scores=bank.arithmetic_scores(candidates,areas if args.hsk_combined else ratios)
     selected,used=select_disjoint(candidates,scores,scope_by_length={2:2,3:2,4:4} if args.hsk_combined else None)
     # Assert uniqueness on the complete unfiltered comparison dictionary again.
     _,final_matches=alternative_matches(competitors,selected,areas,pairs)
@@ -334,8 +426,8 @@ def main():
         'source_words_by_length':dict(sorted(Counter(map(len,source_words)).items())),
         'puzzles_by_length':dict(sorted(Counter(map(len,selected)).items())),
         'puzzles_by_painted_characters':dict(sorted(Counter(sum(areas[c]>0 for c in w) for w in selected).items())),
-        'difficulty_aggregation':'arithmetic-mean-v1; all characters equally weighted, empty paint scores zero',
-        'stroke_ratio_min':min((float(scores[w]) for w in selected),default=0),'stroke_ratio_max':max((float(scores[w]) for w in selected),default=0),
+        'difficulty_aggregation':('mean-paint-area-px-v1' if args.hsk_combined else 'arithmetic-mean-v1; all characters equally weighted, empty paint scores zero'),
+        'difficulty_min':min((float(scores[w]) for w in selected),default=0),'difficulty_max':max((float(scores[w]) for w in selected),default=0),
         'iou_threshold_exclusive':.95,'manhattan_limit_exclusive_px':10,'close_character_pairs':len(pairs),'translation_correlations':correlations,
         'blank_matching':'blank matches every blank; blank never matches nonempty; no transitive similarity closure',
         'comparison_scope':'all renderable four-Hanzi idioms plus existing HSK and broad words of length >=3; match same length only' if args.hsk_multi else 'all renderable four-Hanzi idioms plus existing HSK and broad four-Hanzi words, before any puzzle filters',
@@ -362,7 +454,7 @@ def main():
       CREATE TABLE excluded_font_characters(character TEXT PRIMARY KEY,reason TEXT);
     ''')
     for ordinal,w in enumerate(selected,1):
-        db.execute('INSERT INTO puzzles VALUES (?,?,?,?,?,?,?,?)',(str(uuid.uuid4()),ordinal,w,levels[w] if is_hsk else None,sum(areas[c] for c in w),sum(metrics[c][1] for c in w),sum(metrics[c][2] for c in w),float(scores[w])))
+        db.execute('INSERT INTO puzzles VALUES (?,?,?,?,?,?,?,?)',(str(uuid.uuid4()),ordinal,w,levels[w] if is_hsk else None,sum(areas[c] for c in w),sum(metrics[c][1] for c in w),sum(metrics[c][2] for c in w),float(sum((ratios[c] for c in w),Fraction(0))/len(w))))
     db.executemany('INSERT INTO glyphs VALUES (?,?,?,?,?,?,?,?)',(glyphs[c][1:] for c in sorted(used)))
     db.executemany('INSERT INTO stroke_metrics VALUES (?,?,?,?,?,?)',(metrics[c] for c in sorted(used)))
     db.executemany('INSERT INTO similar_pairs VALUES (?,?,?,?,?,?,?)',pairs)

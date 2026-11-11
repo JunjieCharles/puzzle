@@ -7,6 +7,12 @@ shapes=importlib.util.module_from_spec(spec);spec.loader.exec_module(shapes)
 
 
 class ComponentShapeTests(unittest.TestCase):
+    def test_single_component_exclusion_counts_noise_and_nested_structure(self):
+        graph={'a':{'t'},'b':{'a'},'c':{'t'},'d':{'t'},'e':{'other'}}
+        areas={'a':[60,24],'b':[80],'c':[80,25],'d':[24],'e':[80]}
+        self.assertEqual(shapes.single_component_characters(areas,areas,graph,'t'),{'a','b'})
+        self.assertEqual(areas['a'],[60,24])
+
     def test_recursive_membership_cycles_and_extra_regions(self):
         graph={'a':{'b'},'b':{'a','月'},'c':{'开'},'d':{'a'},'e':{'c'},'f':{'开'}}
         areas={'a':[100,80,24],'b':[100,80,25],'c':[100,1],

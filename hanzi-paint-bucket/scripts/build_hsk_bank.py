@@ -17,7 +17,7 @@ from scipy import ndimage
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT.parent
-FONT = 'HarmonyOS Sans SC'
+FONT = 'Noto Sans SC'
 
 policy_spec=importlib.util.spec_from_file_location('paint_vocabulary_policy',ROOT/'scripts/vocabulary_policy.py')
 policy_module=importlib.util.module_from_spec(policy_spec);policy_spec.loader.exec_module(policy_module)
@@ -78,7 +78,7 @@ def query_shape_pairs(glyphs, query_chars, tolerance):
     return pairs
 
 
-def is_single_solid_rectangle(mask, font_size=400):
+def is_single_solid_rectangle(mask, font_size=400, minimum_fill=.995):
     """Ignore regions below 25 px for this filter only, then inspect the box."""
     labels, count = ndimage.label(mask)
     sizes = np.bincount(labels.ravel(), minlength=count+1)
@@ -91,7 +91,7 @@ def is_single_solid_rectangle(mask, font_size=400):
     box=mask[ys.min():ys.max()+1,xs.min():xs.max()+1].copy()
     if box.all():
         return True
-    if len(xs)/box.size < .995:
+    if len(xs)/box.size < minimum_fill:
         return False
     # Four-connected foreground must be a single region; no enclosed white holes.
     if ndimage.label(box)[1]!=1 or not np.array_equal(ndimage.binary_fill_holes(box),box):
@@ -148,11 +148,11 @@ def select_words(words, areas, ambiguous=(), excluded_chars=(), scores=None, exc
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--lexicon',type=Path,default=REPO/'word-kanji/data/hsk-2025.json')
-    parser.add_argument('--analysis',type=Path,default=REPO.parent/'puzzle-private/hanzi-paint-bucket/extended-analysis/analysis.sqlite')
+    parser.add_argument('--analysis',type=Path,default=REPO.parent/'puzzle-private/hanzi-paint-bucket/noto-extended-analysis/analysis.sqlite')
     parser.add_argument('--extended-lexicon',type=Path,default=REPO/'word-kanji/public/endless-lexicon.json')
     parser.add_argument('--iou-threshold',type=float,default=.95)
     parser.add_argument('--max-manhattan',type=int,default=10)
-    parser.add_argument('--stroke-analysis',type=Path,default=REPO.parent/'puzzle-private/hanzi-paint-bucket/stroke-analysis/metrics.sqlite')
+    parser.add_argument('--stroke-analysis',type=Path,default=REPO.parent/'puzzle-private/hanzi-paint-bucket/noto-stroke-analysis/metrics.sqlite')
     parser.add_argument('--policy',type=Path,default=REPO.parent/'puzzle-private/hanzi-paint-bucket/vocabulary-policy.json')
     parser.add_argument('--output',type=Path,default=REPO.parent/'puzzle-private/hanzi-paint-bucket/hsk-bank-demonstratives-questions-v2')
     args = parser.parse_args()
@@ -171,7 +171,7 @@ def main():
     source = sqlite3.connect(args.analysis.resolve().as_uri()+'?mode=ro',uri=True)
     metadata = json.loads(source.execute("SELECT value_json FROM metadata WHERE key='summary'").fetchone()[0])
     lexicon_hash = hashlib.sha256(args.lexicon.read_bytes()).hexdigest()
-    font_hash = hashlib.sha256((ROOT/'public/fonts/HarmonyOS_Sans_SC_Thin.ttf').read_bytes()).hexdigest()
+    font_hash = hashlib.sha256((ROOT/'public/fonts/NotoSansSC-Thin.ttf').read_bytes()).hexdigest()
     if metadata['lexicon_sha256'] != lexicon_hash or metadata['font_sources'][FONT]['sha256'] != font_hash:
         raise ValueError('Analysis font or HSK snapshot does not match current sources')
     if metadata['render'] != {'canvas':480,'font_size':400,'alpha_threshold':128,'connectivity':4}:
