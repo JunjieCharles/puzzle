@@ -2,7 +2,7 @@ import { analyzeGlyph } from './glyph.mjs';
 export { analyzeGlyph } from './glyph.mjs';
 import { ranges } from './font-coverage.mjs';
 const specs = [
-  { name: 'Noto Sans SC', weight: 200, source: 'url("./fonts/NotoSansSC-Thin.ttf")' },
+  { name: 'Source Han Sans CN', weight: 300, source: 'url("./fonts/SourceHanSansCN-Light.otf")' },
 ];
 const $ = (id) => document.getElementById(id);
 const palette = ['#efb641', '#49b9ae', '#f18d83', '#8d9ee0', '#b8ce68', '#be8cbf'];
@@ -33,7 +33,7 @@ async function render() {
     spec.grid.replaceChildren();
     if (!spec.ready || !chars.length) {
       const empty = document.createElement('p'); empty.className = 'empty';
-      empty.textContent = spec.ready ? '输入文字，看看颜色会停在哪里。' : '等待 Noto Sans SC Thin 字体加载。';
+      empty.textContent = spec.ready ? '输入文字，看看颜色会停在哪里。' : '等待 Source Han Sans CN Light 字体加载。';
       spec.grid.append(empty); continue;
     }
     for (const char of chars.slice(0, 16)) {
@@ -58,7 +58,7 @@ async function load(spec, source) {
     if (spec.ticket !== ticket) return;
     if (spec.face) document.fonts.delete(spec.face);
     document.fonts.add(face); spec.face = face; spec.ready = true;
-    spec.status.textContent = source instanceof ArrayBuffer ? '已加载所选文件（请确认是 Thin）' : 'Thin 已加载';
+    spec.status.textContent = source instanceof ArrayBuffer ? '已加载所选文件（请确认是 Light）' : 'Light 已加载';
   } catch {
     if (spec.ticket !== ticket) return;
     spec.status.textContent = '字体加载失败，请刷新重试'; spec.status.classList.add('error');
@@ -68,7 +68,7 @@ async function load(spec, source) {
 specs.forEach((spec, i) => {
   spec.family = `PaintFont${i}`;
   const panel = document.createElement('section'); panel.className = 'font-panel';
-  panel.innerHTML = `<div class="panel-head"><h2>${spec.name}</h2><span class="badge">THIN</span><span class="status" role="status"></span></div><div class="glyphs"></div>`;
+  panel.innerHTML = `<div class="panel-head"><h2>${spec.name}</h2><span class="badge">LIGHT</span><span class="status" role="status"></span></div><div class="glyphs"></div>`;
   spec.status = panel.querySelector('.status'); spec.grid = panel.querySelector('.glyphs');
   $('results').append(panel);
 });

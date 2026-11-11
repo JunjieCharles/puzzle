@@ -1,13 +1,15 @@
 # 汉字油漆桶
 
-将汉字笔画围出的闭合空白区域涂色。后续统一使用 Noto Sans SC Thin（字重200），词库采用扩展范围并排除单字词条。
+将汉字笔画围出的闭合空白区域涂色。后续统一使用 思源黑体 CN Light（字重300），词库采用扩展范围并排除单字词条。
 
 - [当前设计需求](docs/game-design.md)
 - [六字体连通块一致性过滤与禁字报告](docs/font-components.md)：计数忽略不足25像素的噪点区域。
 - `scripts/specimen.py` 使用真实字体生成对比图，依赖见 `requirements.txt`。
 - 前端已实现猜词闯关、选关、存档与帮助；另保留涂色实验及私有题库预览。
 - [当前HSK二字＋三字＋四字合并题库](docs/hsk-combined-bank.md)：至少两字非空且非单矩形，二、三字共同用字去重（四字另计）、按各字涂色面积的算术平均混合排序。生成命令：`python -X utf8 hanzi-paint-bucket/scripts/build_idiom_bank.py --hsk-combined`。旧[HSK二字库](docs/hsk-bank.md)作为历史记录。
-- [平移相似度与阈值试验](docs/shift-similarity.md)：当前正式采用全局最大 IoU >95%、对应最小曼哈顿位移 <10px。
+- [平移相似度与阈值试验](docs/shift-similarity.md)：原像素分支使用全局最大 IoU >95%、对应最小曼哈顿位移 <10px；当前合并库另应用下述六字体图形规则。
+- [矩形结构相似度试验](docs/rectangle-similarity.md)：离线比较归一化矩形布局、原始位置与六字体多解，列出当前题库新增歧义；尚未用于正式过滤。
+- [任意图形相似度试验](docs/shape-similarity.md)：推广到实际涂色轮廓，要求有效连通块数相同、中心距离≤50px，比较归一化IoU >90%与>95%的六字体多解结果；95%已用于当前合并题库正式过滤。
 - [独立成语题库](docs/idiom-bank.md)：四字成语至少两字有有效涂色，空白字位参与完整词库单解检查；`python -X utf8 hanzi-paint-bucket/scripts/preview_bank.py --idioms` 在8005端口预览。
 - [历史HSK三字及以上题库](docs/hsk-multi-bank.md)：已被二、三、四字合并版取代，三字词新增全部字位非空要求。
 
@@ -19,15 +21,15 @@
 
 运行 `python -X utf8 hanzi-paint-bucket/scripts/serve.py`，打开 http://localhost:8003/puzzle/hanzi-paint-bucket/ 。仅 `public/` 可通过服务访问；静态部署时将其内容复制至 `/puzzle/hanzi-paint-bucket/`。
 
-游戏使用最新 Noto Sans SC HSK 合并题库，题数见[当前题库](docs/hsk-combined-bank.md)；自由输入实验位于同目录 `lab.html`。公开导出：`python -X utf8 hanzi-paint-bucket/scripts/export_game.py`；题目内容未变时保留题集版本及进度。按用户要求试用 AES-GCM 密文，提交与查看答案统一在浏览器解密，提交时直接比较完整词语，不再使用题目摘要和盐；密钥随公开包提供，只避免直接存放明文，不防止开发者工具解密。`word-kanji` 的游戏实现不变。
+游戏使用最新思源黑体 CN Light HSK 合并题库，题数见[当前题库](docs/hsk-combined-bank.md)；自由输入实验位于同目录 `lab.html`。公开导出：`python -X utf8 hanzi-paint-bucket/scripts/export_game.py`；题目内容未变时保留题集版本及进度。按用户要求试用 AES-GCM 密文，提交与查看答案统一在浏览器解密，提交时直接比较完整词语，不再使用题目摘要和盐；密钥随公开包提供，只避免直接存放明文，不防止开发者工具解密。`word-kanji` 的游戏实现不变。
 
-Noto Sans SC Thin、完整字体字符覆盖表及许可证随页面提供，不再选择其他字体。加载失败或缺字时明确提示，不替代字体。实验页默认输入为空，最多显示前 16 个非空白字符，不保存输入及涂色结果。更新字体后运行 `python hanzi-paint-bucket/scripts/font_coverage.py` 重新生成覆盖表。
+思源黑体 CN Light、完整字体字符覆盖表及许可证随页面提供，不再选择其他字体。加载失败或缺字时明确提示，不替代字体。实验页默认输入为空，最多显示前 16 个非空白字符，不保存输入及涂色结果。更新字体后运行 `python hanzi-paint-bucket/scripts/font_coverage.py` 重新生成覆盖表。
 
 验证：`node --test hanzi-paint-bucket/tests/*.test.mjs`，以及 `python -X utf8 -m unittest discover -s hanzi-paint-bucket/tests -v`。
 
 ## 扩展词库统计与私有面积表
 
-安装 `requirements.txt` 中依赖后，运行 `python -X utf8 hanzi-paint-bucket/scripts/analyze_hsk.py --skip-similarity`。分析器使用本机 Edge、前端渲染函数及项目附带的 Noto Sans SC Thin。缺字单列，不渲染替代字形。当前统计扩展词库与原 HSK 范围的并集，排除单字词条；字符也仅从剩余词条提取。
+安装 `requirements.txt` 中依赖后，运行 `python -X utf8 hanzi-paint-bucket/scripts/analyze_hsk.py --skip-similarity`。分析器使用本机 Edge、前端渲染函数及项目附带的 思源黑体 CN Light。缺字单列，不渲染替代字形。当前统计扩展词库与原 HSK 范围的并集，排除单字词条；字符也仅从剩余词条提取。
 
 默认输出至仓库外 `../puzzle-private/hanzi-paint-bucket/noto-extended-analysis/`，已有结果不会覆盖；重新统计请使用 `--output` 指定新的仓库外目录。`--lexicon` 指定 HSK 快照，`--extended-lexicon` 指定扩展词库；`--scope hsk` 切回 HSK（仍排除单字词）。去掉 `--skip-similarity` 可进一步计算固定位置的多解关系，耗时和内存会增加。
 
@@ -44,17 +46,25 @@ Noto Sans SC Thin、完整字体字符覆盖表及许可证随页面提供，不
 python -X utf8 hanzi-paint-bucket/scripts/specimen.py --chars $experimentChars
 ```
 
-输出默认位于仓库外 `../puzzle-private/hanzi-paint-bucket/`；`--output` 可指定其他仓库外目录。使用项目附带的 Noto Sans SC Thin。截图包含字形与填色对应关系，因此不得复制回仓库或公开目录。
+输出默认位于仓库外 `../puzzle-private/hanzi-paint-bucket/`；`--output` 可指定其他仓库外目录。使用项目附带的 思源黑体 CN Light。截图包含字形与填色对应关系，因此不得复制回仓库或公开目录。
 
 
 ## 加载资源优化
 
-游戏不再下载完整题目字体，仅下载约44 KB的Noto界面字体。导出时使用原始字体生成笔画 SVG，与答案一起压缩并加密；浏览器仅在当前关卡内存解密显示。教学图为用户指定的独立示例。gzip 题库约 434 KB，另有小型教学图；加载完成后才允许开始，题集不变时保留已有进度；本次换字体产生新版本。
+游戏不再下载完整题目字体，仅下载思源黑体 Light/Medium 界面子集字体。导出时使用原始字体生成笔画 SVG，与答案一起压缩并加密；浏览器仅在当前关卡内存解密显示。教学图为用户指定的独立示例。gzip 题库约 377 KB，另有小型教学图；加载完成后才允许开始，题集不变时保留已有进度；本次换字体产生新版本。
 
-导出命令自动重建上述资源；仅重建 gzip 可运行 `python -X utf8 hanzi-paint-bucket/scripts/build_game_assets.py`。遵守附带字体许可，仅按OFL发布界面源码字符子集，不从真实题库提取字体子集；原 TTF 仅用于本地实验、分析与生成。游戏需要支持 Web Crypto 与 DecompressionStream 的现代浏览器。
+导出命令自动重建上述资源；仅重建 gzip 可运行 `python -X utf8 hanzi-paint-bucket/scripts/build_game_assets.py`。遵守附带字体许可，仅按OFL发布界面源码字符子集，不从真实题库提取字体子集；原 OTF 仅用于本地实验、分析与生成。游戏需要支持 Web Crypto 与 DecompressionStream 的现代浏览器。
 
-2026-11-11 换字体：当前游戏、预览、实验页及生成器的字形改为 Noto Sans SC Thin；旧分析报告为历史快照，不复用其 HarmonyOS 测量数据。新题面与教学图统一重建并导出，题集内容变化会生成新存档版本。Noto 字体遵循随附 OFL；本次通过GitHub Pages发布此题集。
+2026-11-11 首次换字体（历史发布）：当时游戏、预览、实验页及生成器的字形改为 Noto Sans SC Thin；旧分析报告为历史快照，不复用其 HarmonyOS 测量数据。新题面与教学图统一重建并导出，题集内容变化会生成新存档版本。Noto 字体遵循随附 OFL；本次通过GitHub Pages发布此题集。
 
-界面字体重建：`python -X utf8 hanzi-paint-bucket/scripts/build_ui_fonts.py`，默认读取本机已安装 Noto Regular/Medium，可用 `--source-dir` 指定目录。只扫描界面源码，不读取题库。题库重建可用 `--measurement-bank` 指定同字体的仓库外既有库以复用测量；严格核对字体、渲染与浏览器指纹。
+界面字体重建：`python -X utf8 hanzi-paint-bucket/scripts/build_ui_fonts.py`，默认读取仓库外 `sourcehan-weight-comparison/fonts/` 的 Adobe 官方 Light/Medium OTF，可用 `--source-dir` 指定目录。只扫描界面源码，不读取题库。题库重建可用 `--measurement-bank` 指定同字体的仓库外既有库以复用测量；严格核对字体、渲染与浏览器指纹。
 
-本次上线为Noto题库212题，用户确认此前存档全部失效。显式重置命令：`python -X utf8 hanzi-paint-bucket/scripts/export_game.py --reset-progress`；普通导出不会无条件重置进度。
+此前已上线的v23为Noto题库212题，用户确认此前存档全部失效。显式重置命令：`python -X utf8 hanzi-paint-bucket/scripts/export_game.py --reset-progress`；普通导出不会无条件重置进度。
+
+2026-11-11 当前换字体：用户指定思源黑体 CN Light（Adobe v2.005，字重300），完整重建题面、难度、六字体一致性和多解筛选。六字体中的Noto由思源Light替换，其余五种不变。预览与加密游戏产物同步v27，本轮只更新本地，尚未部署。运行 `python -X utf8 hanzi-paint-bucket/scripts/prepare_sourcehan_cache.py` 准备新字体缓存，再按[合并题库说明](docs/hsk-combined-bank.md)生成。原Noto分析作为历史保留。
+
+界面子集遵守OFL保留名称要求，内部字体名与文件名使用 `Paint Bucket UI`／`PaintBucketUI-*`；字形来源仍为思源Light/Medium，完整原版字体保持原名。
+
+2026-11-11后续更新：新增7个精确禁词后重建v27，共176题；相对v26新增6题、移除8题。新增题目页保持相对已上线v23累计展示，不自动部署。
+
+2026-11-11发布确认：用户要求上线当前v27思源黑体Light题库（176题：二字147、三字3、四字26），并作废此前全部进度和存档码。发布导出显式使用 `--reset-progress` 创建全新revision和公开ID，不迁移旧进度；旧localStorage记录因revision不符而忽略，旧存档码导入被拒绝。静态资源统一使用 `20261111-sourcehan-light-v27-release` 缓存标识，按GitHub Pages白名单发布；前述“未部署”描述为各阶段本地生成时的记录。

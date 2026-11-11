@@ -1,63 +1,152 @@
 {
-  "at_least_two_painted": 2831,
-  "excluded_tiny_region_words": 57,
-  "after_minimum_region_filter": 2774,
+  "at_least_two_painted": 2812,
+  "excluded_tiny_region_words": 22,
+  "after_minimum_region_filter": 2790,
   "excluded_single_rectangle_words": 0,
-  "after_shape_filter": 2774,
+  "after_shape_filter": 2790,
   "single_rectangle_exclusion_applied": false,
   "moon_only_shape_characters": 74,
   "kai_single_rectangle_characters": 10,
   "structural_ids_sha256": "bfc70a8c09f9f5616ebf0543bd6681e67314e9f7ae2307e5ae8c6f15bdc5c6a6",
-  "excluded_fewer_than_two_nonrectangle_words": 1089,
-  "after_informative_glyph_filter": 1685,
-  "excluded_three_character_words_with_blank": 66,
-  "after_three_character_blank_filter": 1619,
+  "excluded_fewer_than_two_nonrectangle_words": 1101,
+  "after_informative_glyph_filter": 1689,
+  "excluded_three_character_words_with_blank": 65,
+  "after_three_character_blank_filter": 1624,
   "hsk_two_to_four_words": 9397,
   "font_supported_words": 9397,
   "excluded_unsupported_words": 0,
   "font_component_consistency_applied": true,
   "font_component_minimum_area_px": 25,
-  "font_component_method": "six-font-paint-components-min25-v1",
+  "font_component_method": "six-font-paint-components-min25-v2-sourcehan",
   "font_component_families": [
-    "Noto Sans SC",
+    "Source Han Sans CN",
     "MiSans",
     "HarmonyOS Sans SC",
     "SimHei",
     "Microsoft YaHei",
     "DengXian"
   ],
-  "font_component_analysis_sha256": "2bd4e04ed15b4c1e2051312b938ce7443e3a2e430dd2daee5f1740e679148391",
-  "font_inconsistent_characters_in_hsk": 389,
+  "font_component_analysis_sha256": "defb55f14cd034da44f78c63193ada33243df46f38d09a9b06af6627bd43de60",
+  "font_inconsistent_characters_in_hsk": 407,
   "font_missing_characters_in_hsk": 0,
-  "excluded_font_inconsistency_words": 563,
-  "after_font_consistency_filter": 1056,
-  "excluded_editorial_words": 136,
-  "after_editorial_filter": 920,
+  "excluded_font_inconsistency_words": 598,
+  "after_font_consistency_filter": 1026,
+  "excluded_editorial_words": 143,
+  "after_editorial_filter": 883,
   "jing_single_component_characters": 5,
-  "excluded_jing_single_component_words": 10,
-  "after_jing_single_component_filter": 910,
+  "excluded_jing_single_component_words": 8,
+  "after_jing_single_component_filter": 875,
   "two_character_structural_banned_characters": 6,
   "excluded_two_character_structural_words": 10,
-  "after_two_character_structural_filter": 900,
-  "regular_rectangle_grid_characters": 311,
-  "excluded_grid_only_words": 213,
+  "after_two_character_structural_filter": 865,
+  "regular_rectangle_grid_characters": 293,
+  "excluded_grid_only_words": 196,
   "excluded_grid_only_words_by_length": {
-    "2": 183,
-    "4": 30
+    "2": 168,
+    "4": 28
   },
-  "zero_to_two_rectangle_characters": 289,
-  "excluded_zero_to_two_rectangle_words": 74,
-  "excluded_zero_to_two_rectangle_words_additional": 13,
-  "excluded_word_pattern_words": 242,
-  "after_word_pattern_filter": 658,
+  "zero_to_two_rectangle_characters": 270,
+  "excluded_zero_to_two_rectangle_words": 68,
+  "excluded_zero_to_two_rectangle_words_additional": 11,
+  "excluded_word_pattern_words": 224,
+  "after_word_pattern_filter": 641,
   "day_shape_character_count": 159,
+  "multifont_ambiguity_applied": true,
+  "ambiguity_method": "same-font-whole-word-shape95-center50-or-pixel95-shift10-equal-components-v1",
+  "shape_iou_threshold_exclusive": 0.95,
+  "shape_center_l1_limit_inclusive_px": 50,
+  "similarity_equal_effective_components": true,
+  "ambiguity_font_results": [
+    {
+      "font": "Source Han Sans CN",
+      "affected_candidates": 135,
+      "missing_comparison_characters": 0,
+      "shape_pairs": 7428,
+      "exact_shape_comparisons": 7529
+    },
+    {
+      "font": "MiSans",
+      "affected_candidates": 201,
+      "missing_comparison_characters": 0,
+      "shape_pairs": 11130,
+      "exact_shape_comparisons": 11521
+    },
+    {
+      "font": "HarmonyOS Sans SC",
+      "affected_candidates": 188,
+      "missing_comparison_characters": 22,
+      "shape_pairs": 10043,
+      "exact_shape_comparisons": 10301
+    },
+    {
+      "font": "SimHei",
+      "affected_candidates": 53,
+      "missing_comparison_characters": 22,
+      "shape_pairs": 3877,
+      "exact_shape_comparisons": 3955
+    },
+    {
+      "font": "Microsoft YaHei",
+      "affected_candidates": 149,
+      "missing_comparison_characters": 0,
+      "shape_pairs": 8053,
+      "exact_shape_comparisons": 8146
+    },
+    {
+      "font": "DengXian",
+      "affected_candidates": 70,
+      "missing_comparison_characters": 0,
+      "shape_pairs": 5295,
+      "exact_shape_comparisons": 5383
+    }
+  ],
+  "ambiguity_font_fingerprints": {
+    "Source Han Sans CN": {
+      "sha": "c406ec4c795fe71ec443a8a55570d7df53dea560ea93d4117eadab6e2b19680d",
+      "face": null,
+      "browser": "157.0.4341.42",
+      "render": "480-400-alpha128-v1"
+    },
+    "MiSans": {
+      "sha": "288cc291d146e6d88edd2ad5ce7bbcdb02cd36a27fce44e67d3294e4524704be",
+      "face": null,
+      "browser": "157.0.4341.42",
+      "render": "480-400-alpha128-v1"
+    },
+    "HarmonyOS Sans SC": {
+      "sha": "a88d9065dc144bf462e6553e308e9d5256bfe1a068abb47a3ee1081d636ea91a",
+      "face": null,
+      "browser": "157.0.4341.42",
+      "render": "480-400-alpha128-v1"
+    },
+    "SimHei": {
+      "sha": "aa4560dd8fe5645745fed3ffa301c3ca4d6c03cbd738145b613303961ba733b8",
+      "face": null,
+      "browser": "157.0.4341.42",
+      "render": "480-400-alpha128-v1"
+    },
+    "Microsoft YaHei": {
+      "sha": "7e9bdf90bb5d3fe1b5975fc8ae31944b8fa674122261f92c28d4ec0b9c482fa1",
+      "face": 0,
+      "browser": "157.0.4341.42",
+      "render": "480-400-alpha128-v1"
+    },
+    "DengXian": {
+      "sha": "3ae7cf364a29b9da69eff7333decb88e577c262c5847df2510e37695e25a8395",
+      "face": null,
+      "browser": "157.0.4341.42",
+      "render": "480-400-alpha128-v1"
+    }
+  },
   "bank_type": "hsk-combined",
   "source_entries": 10902,
   "idiom_source_sha256": "1d4b4f454ce1c416d6a1ab2369d6e66c0ff99e04390172eef70790499e21ce19",
   "hsk_sha256": "adcac66db3256ec73bf8826444007b519b27987e1ded70bcd244cc4054d286dd",
   "extended_sha256": "430a352eca23b62195f7a536fd2e79651b4d8b2fb663eab6b88581a66b3be44f",
-  "font": "Noto Sans SC",
-  "font_sha256": "e4771ec72c73acdac3af8c448c1f6c0c8084d8279843d44df8a3b32cb2a080a3",
+  "font": "Source Han Sans CN",
+  "font_weight": 300,
+  "font_style": "Light",
+  "font_sha256": "c406ec4c795fe71ec443a8a55570d7df53dea560ea93d4117eadab6e2b19680d",
   "render": {
     "canvas": 480,
     "font_size": 400,
@@ -69,35 +158,35 @@
   "renderable_comparison_words": 90299,
   "unsupported_comparison_words": 25,
   "unsupported_characters": 27,
-  "excluded_ambiguous_words": 20,
-  "unique_answer_words": 638,
-  "excluded_internal_repetition": 24,
-  "candidates_before_global_deduplication": 614,
-  "excluded_global_conflicts": 402,
-  "puzzle_count": 212,
-  "distinct_characters": 441,
+  "excluded_ambiguous_words": 227,
+  "unique_answer_words": 414,
+  "excluded_internal_repetition": 16,
+  "candidates_before_global_deduplication": 398,
+  "excluded_global_conflicts": 222,
+  "puzzle_count": 176,
+  "distinct_characters": 372,
   "source_words_by_length": {
     "2": 8548,
     "3": 391,
     "4": 458
   },
   "puzzles_by_length": {
-    "2": 182,
-    "3": 5,
-    "4": 25
+    "2": 147,
+    "3": 3,
+    "4": 26
   },
   "puzzles_by_painted_characters": {
-    "2": 193,
+    "2": 157,
     "3": 17,
     "4": 2
   },
   "difficulty_aggregation": "mean-paint-area-px-v1",
-  "difficulty_min": 5085.0,
-  "difficulty_max": 70185.5,
+  "difficulty_min": 3621.0,
+  "difficulty_max": 66909.0,
   "iou_threshold_exclusive": 0.95,
   "manhattan_limit_exclusive_px": 10,
-  "close_character_pairs": 345,
-  "translation_correlations": 1422,
+  "close_character_pairs": 319,
+  "translation_correlations": 1280,
   "blank_matching": "blank matches every blank; blank never matches nonempty; no transitive similarity closure",
   "comparison_scope": "all renderable four-Hanzi idioms plus existing HSK and broad words of length 2/3/4; match same length only; before puzzle filters",
   "character_reuse_scope": "one shared pool for lengths 2 and 3; separate pool for length 4; includes all positions",
@@ -106,14 +195,14 @@
   "minimum_nonempty_nonrectangle_characters": 2,
   "three_character_words_allow_blank": false,
   "distinct_characters_by_scope": {
-    "2+3": 379,
-    "4": 100
+    "2+3": 303,
+    "4": 104
   },
   "distinct_characters_by_length": {
-    "2": 364,
-    "3": 15,
-    "4": 100
+    "2": 294,
+    "3": 9,
+    "4": 104
   },
-  "editorial_policy_version": "explicit-words-v21",
-  "puzzles_with_single_rectangle_characters": 10
+  "editorial_policy_version": "explicit-words-v23",
+  "puzzles_with_single_rectangle_characters": 11
 }

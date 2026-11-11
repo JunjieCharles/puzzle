@@ -14,6 +14,7 @@ from cryptography.exceptions import InvalidTag
 
 from preview_bank import mask_png
 from render_game_art import render_game_art
+from game_font import FAMILY, FILE
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT.parent
@@ -31,9 +32,9 @@ def export(banks, output, renderer=render_game_art, reset_progress=False):
             has_metadata=db.execute("SELECT 1 FROM sqlite_master WHERE name='metadata'").fetchone()
             metadata=json.loads(db.execute("SELECT value_json FROM metadata WHERE key='build'").fetchone()[0]) if has_metadata else {}
             if renderer is render_game_art:
-                expected=hashlib.sha256((ROOT/'public/fonts/NotoSansSC-Thin.ttf').read_bytes()).hexdigest()
-                if metadata.get('font')!='Noto Sans SC' or metadata.get('font_sha256')!=expected:
-                    raise ValueError('Bank font must match the Noto Sans SC artwork renderer')
+                expected=hashlib.sha256(FILE.read_bytes()).hexdigest()
+                if metadata.get('font')!=FAMILY or metadata.get('font_sha256')!=expected:
+                    raise ValueError('Bank font must match the Source Han Sans Light artwork renderer')
             area_difficulty=metadata.get('difficulty_aggregation')=='mean-paint-area-px-v1'
             metric='total_paint_area_px' if area_difficulty else 'stroke_ratio'
             for word, score in db.execute(f'SELECT word,{metric} FROM puzzles ORDER BY ordinal'):
@@ -94,6 +95,6 @@ if __name__ == '__main__':
     parser.add_argument('--bank', type=Path, action='append')
     parser.add_argument('--reset-progress', action='store_true', help='Start a new progress revision even when the question content is unchanged')
     args = parser.parse_args()
-    export(args.bank or [PRIVATE / 'hsk-combined-editorial-v23-noto-bank/bank.sqlite'], ROOT / 'public', reset_progress=args.reset_progress)
+    export(args.bank or [PRIVATE / 'hsk-combined-editorial-v27-sourcehan-light-bank/bank.sqlite'], ROOT / 'public', reset_progress=args.reset_progress)
     from build_game_assets import build_game_assets
     build_game_assets()

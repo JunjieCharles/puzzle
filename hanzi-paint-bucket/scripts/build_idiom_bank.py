@@ -16,6 +16,7 @@ import numpy as np
 from scipy import ndimage
 from fontTools.ttLib import TTFont
 from playwright.sync_api import sync_playwright
+from game_font import FAMILY, FILE, WEIGHT, STYLE
 
 ROOT=Path(__file__).resolve().parents[1]
 REPO=ROOT.parent
@@ -207,7 +208,7 @@ def font_component_exclusions(path, required, hsk_hash, font_hash, render_meta, 
             or meta.get('minimum_component_area_px')!=25 or meta['fonts'][bank.FONT]['source_sha256']!=font_hash):
             raise ValueError('Six-font component analysis differs from current sources or noise rule')
         names=set(meta['font_order'])
-        if names!={'Noto Sans SC','MiSans','HarmonyOS Sans SC','SimHei','Microsoft YaHei','DengXian'}:
+        if names!={FAMILY,'MiSans','HarmonyOS Sans SC','SimHei','Microsoft YaHei','DengXian'}:
             raise ValueError('Six expected font families required')
         counts={}
         for c,name,count,raw in db.execute('SELECT character,font,count,areas_json FROM components'):
@@ -235,13 +236,13 @@ def render(chars, glyphs, metrics, browser_version, require_metrics=False):
                 raise ValueError('Browser version differs from cached analysis')
             browser_version=browser.version
             page.goto(f'http://localhost:{server.server_port}/puzzle/hanzi-paint-bucket/lab.html')
-            page.wait_for_function("document.querySelector('.status').textContent.includes('Thin 已加载')")
+            page.wait_for_function("document.querySelector('.status').textContent.includes('Light 已加载')")
             for start in range(0,len(chars),32):
-                batch=page.evaluate('''async chars=>{
+                batch=page.evaluate('''async ({chars,weight})=>{
                   const {analyzeGlyph}=await import('./app.js');
                   const pack=values=>{const p=new Uint8Array(values.length/8);for(let i=0;i<values.length;i++)if(values[i])p[i>>3]|=1<<(7-(i&7));return btoa(String.fromCharCode(...p));};
-                  return chars.map(c=>{const {alpha,labels}=analyzeGlyph(c,'PaintFont0',200);return {ink:pack(alpha.map(a=>a>=128)),paint:pack(labels.map(a=>a>0))};});
-                }''',chars[start:start+32])
+                  return chars.map(c=>{const {alpha,labels}=analyzeGlyph(c,'PaintFont0',weight);return {ink:pack(alpha.map(a=>a>=128)),paint:pack(labels.map(a=>a>0))};});
+                }''',{'chars':chars[start:start+32],'weight':WEIGHT})
                 for char,row in zip(chars[start:start+32],batch):
                     ink_raw=base64.b64decode(row['ink']);paint_raw=base64.b64decode(row['paint'])
                     paint=np.unpackbits(np.frombuffer(paint_raw,dtype=np.uint8)).reshape(480,480).astype(bool)
@@ -270,13 +271,14 @@ def main():
     mode=parser.add_mutually_exclusive_group()
     mode.add_argument('--hsk-multi',action='store_true',help='Historical HSK length >=3 bank')
     mode.add_argument('--hsk-combined',action='store_true',help='HSK length 2/3/4; two informative glyphs; no blanks in length 3; lengths 2/3 share characters, length 4 separate')
-    parser.add_argument('--font-component-analysis',type=Path,default=PRIVATE/'font-component-analysis/components.sqlite')
+    parser.add_argument('--font-component-analysis',type=Path,default=PRIVATE/'sourcehan-light-font-analysis/components.sqlite')
     parser.add_argument('--output',type=Path)
     parser.add_argument('--measurement-bank',type=Path,help='Reuse measurements from a private bank with identical font/render/browser fingerprints')
+    parser.add_argument('--ambiguity-cache',type=Path,default=PRIVATE/'sourcehan-light-font-analysis',help='Fingerprint-checked six-font mask cache outside repository')
     parser.add_argument('--policy',type=Path,default=PRIVATE/'vocabulary-policy.json',help='Private policy; alternate files allow isolated what-if builds')
     args=parser.parse_args();source=private_path(args.source)
     is_hsk=args.hsk_multi or args.hsk_combined
-    output=private_path(args.output or PRIVATE/('hsk-combined-editorial-v23-noto-bank' if args.hsk_combined else 'hsk-multi-rectangles-bank' if args.hsk_multi else 'idiom-bank'))
+    output=private_path(args.output or PRIVATE/('hsk-combined-editorial-v27-sourcehan-light-bank' if args.hsk_combined else 'hsk-multi-rectangles-bank' if args.hsk_multi else 'idiom-bank'))
     output.mkdir(parents=True,exist_ok=True)
     if any(output.iterdir()):parser.error('Use a new empty output directory')
     raw=source.read_bytes();entries=json.loads(raw)
@@ -292,8 +294,8 @@ def main():
         source_words={w for w in hsk if len(w) in (2,3,4)}
         universe=sorted(idioms|{w for w in hsk|broad if len(w) in (2,3,4)})
     required=set(''.join(universe))
-    bank.FONT='Noto Sans SC'
-    font_path=ROOT/'public/fonts/NotoSansSC-Thin.ttf';font_hash=hashlib.sha256(font_path.read_bytes()).hexdigest()
+    bank.FONT=FAMILY
+    font_path=FILE;font_hash=hashlib.sha256(font_path.read_bytes()).hexdigest()
     with TTFont(font_path) as font:supported={c for c in required if ord(c) in font.getBestCmap()}
     # A font switch invalidates every previous paint/stroke measurement.
     glyphs={};metrics={}
@@ -401,7 +403,12 @@ def main():
     cache.executemany('INSERT INTO characters VALUES (?,?,?,?,?,?,?,?,?)',glyphs.values());cache.commit()
     pairs,correlations=bank.shift_module.translated_pairs(glyphs,set(''.join(shaped)),.95,10)
     (output/'pairs.json').write_text(json.dumps(pairs,ensure_ascii=False),encoding='utf8')
-    comparison_words,matches=alternative_matches(competitors,shaped,areas,pairs)
+    if args.hsk_combined:
+        matches,ambiguity_summary=module('multifont_ambiguity').check_words(competitors,shaped,args.ambiguity_cache,output,metadata['browser_version'],pairs)
+        summary.update(ambiguity_summary)
+        comparison_words=sorted(competitors)
+    else:
+        comparison_words,matches=alternative_matches(competitors,shaped,areas,pairs)
     ambiguous={w for w,m in matches.items() if len(m)>1}
     unique=[w for w in shaped if w not in ambiguous]
     candidates=[w for w in unique if len(set(w))==len(w)]
@@ -413,11 +420,12 @@ def main():
     scores=bank.arithmetic_scores(candidates,areas if args.hsk_combined else ratios)
     selected,used=select_disjoint(candidates,scores,scope_by_length={2:2,3:2,4:4} if args.hsk_combined else None)
     # Assert uniqueness on the complete unfiltered comparison dictionary again.
-    _,final_matches=alternative_matches(competitors,selected,areas,pairs)
+    if args.hsk_combined:final_matches={w:matches[w] for w in selected}
+    else:_,final_matches=alternative_matches(competitors,selected,areas,pairs)
     if any(len(v)!=1 for v in final_matches.values()):raise ValueError('Nonunique final question')
     summary.update({'bank_type':'hsk-combined' if args.hsk_combined else 'hsk-multi' if args.hsk_multi else 'idiom','source_entries':len(hsk_entries) if is_hsk else len(entries),'idiom_source_sha256':hashlib.sha256(raw).hexdigest(),
         'hsk_sha256':hashlib.sha256(hsk_path.read_bytes()).hexdigest(),'extended_sha256':hashlib.sha256(extended_path.read_bytes()).hexdigest(),
-        'font':bank.FONT,'font_sha256':font_hash,'render':metadata['render'],'browser_version':metadata['browser_version'],
+        'font':bank.FONT,'font_weight':WEIGHT,'font_style':STYLE,'font_sha256':font_hash,'render':metadata['render'],'browser_version':metadata['browser_version'],
         'comparison_words':len(universe),'renderable_comparison_words':len(competitors),
         'unsupported_comparison_words':len(universe)-len(competitors),'unsupported_characters':len(required-supported),
         'excluded_ambiguous_words':len(ambiguous),'unique_answer_words':len(unique),

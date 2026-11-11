@@ -11,8 +11,8 @@ from audit_public import inspect_file
 
 ASSETS = ('index.html', 'style.css', 'bucket.svg', 'game.mjs', 'decrypt.mjs', 'load-resource.mjs',
           'state.mjs', 'levels.json', 'levels.json.gz', 'tutorial.json',
-          'fonts/LICENSE-NotoSansSC.txt',
-          'fonts/NotoSansSC-UI-Regular.woff2', 'fonts/NotoSansSC-UI-Medium.woff2')
+          'fonts/LICENSE-SourceHanSans.txt',
+          'fonts/PaintBucketUI-Light.woff2', 'fonts/PaintBucketUI-Medium.woff2')
 
 
 def package_site(output, base_path=''):

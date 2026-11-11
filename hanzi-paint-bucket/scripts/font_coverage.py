@@ -2,9 +2,10 @@
 import json
 from pathlib import Path
 from fontTools.ttLib import TTFont
+from game_font import FILE
 
 ROOT = Path(__file__).resolve().parents[1]
-with TTFont(ROOT/'public/fonts/NotoSansSC-Thin.ttf') as font:
+with TTFont(FILE) as font:
     points = sorted(font.getBestCmap())
 ranges = []
 for point in points:

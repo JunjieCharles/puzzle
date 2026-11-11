@@ -1,4 +1,4 @@
-@font-face { font-family:Noto; src:url('./font.ttf'); font-weight:200; font-display:swap; }
+@font-face { font-family:PreviewPuzzle; src:url('./font.ttf'); font-weight:300; font-display:swap; }
 * { box-sizing:border-box; }
 html,body { width:100%; height:100%; margin:0; overflow:hidden; }
 body { background:#f5f3ee; color:#273934; font-family:'Segoe UI','Microsoft YaHei',sans-serif; font-size:14px; }
@@ -33,7 +33,7 @@ button:focus-visible,input:focus-visible { outline:2px solid #398f7d; outline-of
 .glyph-cell canvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 .glyph-cell img.implied { position:absolute; inset:0; background:none; box-shadow:none; pointer-events:none; z-index:2; }
 [hidden] { display:none!important; }
-.answer { font-family:Noto,sans-serif; font-weight:200; font-size:26px; line-height:32px; text-align:center; letter-spacing:4px; white-space:nowrap; }
+.answer { font-family:PreviewPuzzle,sans-serif; font-weight:300; font-size:26px; line-height:32px; text-align:center; letter-spacing:4px; white-space:nowrap; }
 .card-bottom { min-width:0; display:flex; justify-content:space-between; align-items:center; gap:8px; border-top:1px solid #f0f1ec; padding-top:4px; }
 .area { font-size:11px; color:#7a857d; min-width:0; white-space:nowrap; }
 .reveal { font-size:12px; padding:4px 7px; flex-shrink:0; }

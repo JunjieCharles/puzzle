@@ -1,4 +1,4 @@
-:root { font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif; color:#28434a; background:#f7f4ec; font-synthesis:none; --green:#306b79; --muted:#737f72; --line:#d9e0d2; --ui:clamp(16px,1.05vw,18px); --small:clamp(14px,1vw,16px); --emphasis:clamp(18px,1.25vw,22px); --heading:clamp(22px,1.5vw,26px); }
+:root { font-weight:300; font-family:"Paint Bucket UI","PingFang SC","Microsoft YaHei",sans-serif; color:#28434a; background:#f7f4ec; font-synthesis:none; --green:#306b79; --muted:#737f72; --line:#d9e0d2; --ui:clamp(16px,1.05vw,18px); --small:clamp(14px,1vw,16px); --emphasis:clamp(18px,1.25vw,22px); --heading:clamp(22px,1.5vw,26px); }
 * { box-sizing:border-box; } body { margin:0; background:radial-gradient(ellipse at 50% 35%,#e3edeb,transparent 70%); }
 button,input,select { font:inherit; } button,a,input { -webkit-tap-highlight-color:transparent; } a { color:inherit; text-decoration:none; } button { cursor:pointer; } button:disabled { cursor:default; } [hidden] { display:none!important; }
 button:focus-visible,a:focus-visible,select:focus-visible { outline:3px solid #98b897; outline-offset:4px; } h1:focus { outline:none; }

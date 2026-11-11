@@ -1,8 +1,8 @@
-import {decryptPuzzle} from './decrypt.mjs?v=20261111-noto-212';
-import {loadResource, loadJsonResource} from './load-resource.mjs?v=20261111-noto-212';
-import {validateProgress, encodeSave, decodeSave, nextLevel} from './state.mjs?v=20261111-noto-212';
+import {decryptPuzzle} from './decrypt.mjs?v=20261111-sourcehan-light-v27-release';
+import {loadResource, loadJsonResource} from './load-resource.mjs?v=20261111-sourcehan-light-v27-release';
+import {validateProgress, encodeSave, decodeSave, nextLevel} from './state.mjs?v=20261111-sourcehan-light-v27-release';
 const $ = id => document.getElementById(id);
-const RELEASE = '20261111-noto-212';
+const RELEASE = '20261111-sourcehan-light-v27-release';
 const KEY = 'hanzi-paint-bucket.progress.v1';
 let bank, passed = new Set(), current = 0, page = 0, pageSize = 30, routeTicket = 0;
 let timer, composing = false, checking = false, revealed = false, loading;
@@ -31,10 +31,10 @@ async function prepareGame() {
 async function loadUiFonts() {
   if (uiFontsReady) return;
   const faces = await Promise.all([
-    ['Regular', '400'], ['Medium', '500 900']
+    ['Light', '300'], ['Medium', '500 900']
   ].map(async ([name, weight]) => {
-    const bytes = await loadResource(`./fonts/NotoSansSC-UI-${name}.woff2?v=${RELEASE}`);
-    return new FontFace('Noto Sans SC', bytes, {weight}).load();
+    const bytes = await loadResource(`./fonts/PaintBucketUI-${name}.woff2?v=${RELEASE}`);
+    return new FontFace('Paint Bucket UI', bytes, {weight}).load();
   }));
   faces.forEach(face => document.fonts.add(face));
   uiFontsReady = true;
